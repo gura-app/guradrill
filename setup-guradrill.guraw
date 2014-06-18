@@ -4,7 +4,7 @@ import(helper.setup)
 helper.setup.execute(
 	launcherName	=> 'Gura Drill'
 	version			=> '0.0.0'
-	dirNameDst		=> path.join(sys.appdir, 'guradrill')
+	shortName		=> 'guradrill'
 	fileNameScript	=> 'guradrill.guraw'
 	fileNameIcon	=> 'guradrill.ico'
 	fileNamesExtra	=> []
