@@ -1,0 +1,9 @@
+# -*- coding: utf-8 -*-
+import(mswin)
+
+transDicts = %{
+`ja => %{
+}
+}
+
+(transDict = transDicts.get(sys.langcode)) && string.translator {|x| transDict.get(x, x)}
