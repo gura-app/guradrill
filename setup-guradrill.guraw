@@ -7,5 +7,6 @@ helper.setup.execute(
 	shortName		=> 'guradrill'
 	fileNameScript	=> 'guradrill.guraw'
 	fileNameIcon	=> 'guradrill.ico'
-	fileNamesExtra	=> []
+	fileNamesExtra	=> ['translate.gura']
+	fileNamesClean	=> [path.join(sys.cfgdir, 'guradrill.yml')]
 )
