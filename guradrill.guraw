@@ -816,30 +816,6 @@ Canvas = class(wx.Panel) {
 }
 
 composerClasses = @{
-	class(FractionComposer) {
-		Initialize() = {
-			this.category = 'たし算'
-			this.title = ['たし算', 'たしざん']
-			this.composerName = '分数 ＋ 分数'
-			this.imgIcon = wx.GetApp().IMG_Plus
-			this.cntHorzMax = 2
-			this.cntVertMax = 15
-			this.attrCur.cntHorz = 2
-			this.attrCur.cntVert = 10
-			this.attrCur.kanjiFlag = false
-		}
-		MakeQuestion() = {
-			denom = rand(8) + 2
-			num = rand(denom - 2) + 1
-			fracL = Fraction(num, denom).Reduce()
-			denom = rand(8) + 2
-			num = rand(denom - 2) + 1
-			fracR = Fraction(num, denom).Reduce()
-			fracAnswer = Fraction(fracL.num * fracR.denom + fracR.num * fracL.denom,
-											fracL.denom * fracR.denom).Reduce()
-			FractionQuestion(fracL, '＋', fracR, fracAnswer)
-		}
-	}
 	class(LineComposer) {
 		Initialize() = {
 			this.category = 'たし算'
@@ -1283,6 +1259,30 @@ composerClasses = @{
 			numL = rand(900) + 100
 			numR = rand(10) + 10
 			BoxQuestionDiv(numL, numR)
+		}
+	}
+	class(FractionComposer) {
+		Initialize() = {
+			this.category = '分数'
+			this.title = ['分数', 'ぶんすう']
+			this.composerName = '分数 ＋ 分数'
+			this.imgIcon = wx.GetApp().IMG_Plus
+			this.cntHorzMax = 2
+			this.cntVertMax = 15
+			this.attrCur.cntHorz = 2
+			this.attrCur.cntVert = 10
+			this.attrCur.kanjiFlag = false
+		}
+		MakeQuestion() = {
+			denom = rand(8) + 2
+			num = rand(denom - 2) + 1
+			fracL = Fraction(num, denom).Reduce()
+			denom = rand(8) + 2
+			num = rand(denom - 2) + 1
+			fracR = Fraction(num, denom).Reduce()
+			fracAnswer = Fraction(fracL.num * fracR.denom + fracR.num * fracL.denom,
+											fracL.denom * fracR.denom).Reduce()
+			FractionQuestion(fracL, '＋', fracR, fracAnswer)
 		}
 	}
 }
