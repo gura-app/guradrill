@@ -176,7 +176,7 @@ App = class(wx.App) {
 		}
 		try { this.cfg = yaml.read(this.fileNameCfg) } catch { this.cfg = %{} }
 		this.cfg.store():default {
-			'wdFrame'			=> 680
+			'wdFrame'			=> 800
 			'htFrame'			=> 680
 			'wdNavi'			=> 200
 			'select'			=> %{
