@@ -3,7 +3,7 @@ import(helper.setup)
 
 helper.setup.execute(
 	launcherName	=> 'Gura Drill'
-	version			=> '0.0.0'
+	version			=> '1.0.0'
 	shortName		=> 'guradrill'
 	fileNameScript	=> 'guradrill.guraw'
 	fileNameIcon	=> 'guradrill.ico'
