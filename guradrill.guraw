@@ -1057,6 +1057,39 @@ composerClasses = @{
 			}
 		}
 	}
+	class(LineComposer) {
+		Initialize() = {
+			this.category = '大きな数の計算'
+			this.title = ['大きな数の計算', 'おおきなかずのけいさん']
+			this.composerName = '足し算・引き算'
+			this.imgIcon = wx.GetApp().IMG_Plus
+			this.cntHorzMax = 1
+			this.cntVertMax = 15
+			this.attrCur.cntHorz = 1
+			this.attrCur.cntVert = 10
+			this.wdLeft = 50
+			this.wdRight = 50
+			this.wdAnswer = 60
+		}
+		MakeQuestion() = {
+			digits = 10 ** (rand(3) + 2)
+			if (rand() < .5) {
+				numL = (rand(99) + 1)
+				numR = (rand(99) + 1)
+				numL *= digits
+				numR *= digits
+				numAnswer = numL + numR
+				LineQuestion(numL, '＋', numR, numAnswer)
+			} else {
+				numL = rand(90) + 10
+				numR = rand(numL - 2) + 1
+				numL *= digits
+				numR *= digits
+				numAnswer = numL - numR
+				LineQuestion(numL, '－', numR, numAnswer)
+			}
+		}
+	}
 	class(BoxComposer) {
 		Initialize() = {
 			this.category = 'たし算 (筆算)'
