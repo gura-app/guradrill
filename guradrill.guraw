@@ -245,6 +245,11 @@ if (sys.platform == `mswin) {
 		[basename, extname] = path.splitext(filename)
 		prognameDict.haskey(extname) && os.exec(prognameDict[extname], filename):fork
 	}
+} elsif (sys.platform == `darwin) {
+	fontFamilyName = 'Hiragino Maru Gothic Pro'
+	OpenWithApp(filename:string) = {
+		os.exec('open', filename):fork
+	}
 }
 
 //-----------------------------------------------------------------------------
