@@ -543,7 +543,7 @@ Composer = class {
 	}
 	MakeNumWide(num:number) = this.wideDict[format('%d', num).each()].join()
 	MakeTextWide(text:string) = {
-		chars = text.each(), this.wideDict.gets(chars, chars).join()
+		chars = text.each(), this.wideDict.get(chars, chars).join()
 	}
 }
 
