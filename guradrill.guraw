@@ -5,6 +5,7 @@
 // Copyright (C) gura-lang.org
 //-----------------------------------------------------------------------------
 import(wx)
+import(wx.utils)
 import(re)
 import(gif)
 import(jpeg)
@@ -84,6 +85,8 @@ App = class(wx.App) {
 		IMG_Divide
 	}
 	OnInit() = {
+		!wx.utils.CheckGuraVersion(nil, 0, 6, 2) && return(false)
+		!wx.utils.CheckGuraPlatform(nil, [`mswin, `linux, `darwin]) && return(false)
 		this.paperInfo = PaperInfo(210, 297, 10, 10, 10, 15)
 		[this.wdCanvas, this.htCanvas] = [210, 297] * 2.0
 		htImage = 20
