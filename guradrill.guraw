@@ -175,7 +175,7 @@ App = class(wx.App) {
 			this.fileNameCfg = sys.argv[1]
 		}
 		try { this.cfg = yaml.read(this.fileNameCfg) } catch { this.cfg = %{} }
-		this.cfg.store():timid {
+		this.cfg.append():timid {
 			'wdFrame'			=> 800
 			'htFrame'			=> 680
 			'wdNavi'			=> 200
