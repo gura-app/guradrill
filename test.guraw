@@ -1,0 +1,34 @@
+#!/usr/bin/env gura
+# encoding: utf-8
+import(wx)
+import(cairo)
+
+App = class(wx.App) {
+	OnInit() = {
+		frame = FrameMain('Simple', wx.DefaultPosition, wx.DefaultSize)
+		frame.Show()
+		true
+	}
+}
+
+PanelMain = class(wx.Panel) {
+	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
+		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
+	}
+	OnPaint(event:wx.PaintEvent) = {
+		dc = wx.PaintDC(this)
+		dc.SetPen(wx.BLACK_PEN)
+		dc.DrawLine(0, 0, 100, 100)
+		dc = nil
+	}
+}
+
+FrameMain = class(wx.Frame) {
+	__init__(title:string, pos:wx.Point, size:wx.Size) = {|nil, wx.ID_ANY, title, pos, size|
+		menuBar = wx.MenuBar()
+		this.SetMenuBar(menuBar)
+		PanelMain(this)
+	}
+}
+
+wx.IMPLEMENT_APP(App)
