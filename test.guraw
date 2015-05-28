@@ -13,7 +13,6 @@ App = class(wx.App) {
 }
 
 DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
-	cr.set_line_width(1)
 	xOff = 0
 	str.each {|ch|
 		extents = cr.text_extents(ch)
@@ -21,8 +20,9 @@ DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 					 extents.width, extents.height)
 		xOff += extents.x_advance
 	}
-	cr.set_source_rgba(1, 0.0, 0.0, 0.7)
-	cr.stroke()
+	//cr.set_line_width(1)
+	cr.set_source_rgba(0.8, 0.8, 0.8, 0.7)
+	cr.fill()
 	cr.move_to(x, y)
 	cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
 	cr.show_text(str)
@@ -39,14 +39,16 @@ PanelMain = class(wx.Panel) {
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
 		this.img = image(`rgba, 800, 600)
 		this.img.cairo {|cr|
+			//fontFamilyName = 'times'
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			cr.set_font_size(40.0)
 			DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			DrawTextWithBBox(cr, 10, 140, 'abcdefghijklmnopqrstuvwxyz')
-			DrawTextWithBBox(cr, 10, 180, '０１２３４５６７８９')
 			DrawTextWithBBox(cr, 10, 220, '0123456789')
-			DrawTextWithBBox(cr, 10, 260, '+-\u00d7\u00f7\u03c0')
-			DrawTextWithBBox(cr, 10, 300, '3.234 + 11234 \u00f7 432')
+			DrawTextWithBBox(cr, 10, 260, '=+-\u00d7\u00f7\u03c0')
+			DrawTextWithBBox(cr, 10, 300, '3.234 + 11234 \u00f7 (432 + 123) = ')
+			// 3//4 + 2//3 =
+			// [1000]{5c}+[123]{5c}=[]{5b}
 		}
 		this.bmp = wx.Bitmap(this.img)
 	}

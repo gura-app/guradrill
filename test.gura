@@ -1,0 +1,79 @@
+#!/usr/bin/env gura
+
+str = 'x^2+3x^3+4=0'
+
+//str = '{1000}[5c] + {123}[5c] = {}[5b]'
+//str = '123+345-1111'
+Item = class {
+	public {type, text, children}
+	__init__(type:symbol, text?:string) = {
+		this.type = type
+		this.text = text
+		this.children = []
+	}
+	AddChild(item:Item) = this.children.add(item)
+	Print(indentLevel:number => 0):void = {
+		printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.text)
+		this.children:*Print(indentLevel + 1)
+	}
+}
+
+Parse(str:string) = {
+	itemStack = []
+	itemStack.add(Item(`Root))
+	text = ''
+	stat = `Normal
+	str.each {|ch|
+		itemParent = itemStack.last()
+		if (stat == `Normal) {
+			if (ch == '{') {
+				item = Item(`Block)
+				itemParent.AddChild(item)
+				itemStack.add(item)
+			} elsif (ch == '}') {
+				if (itemStack.len() < 2) {
+					raise(error.SyntacError, 'unbalanced bracket')
+				}
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+				stat = `BlockAttrPre
+			} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+				itemParent.AddChild(Item(`Operator, ch))
+			} elsif (ch in [' ', '\t']) {
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+			} else {
+				text += ch
+			}
+		} elsif (stat == `BlockAttrPre) {
+			if (ch == '[') {
+				stat = `BlockAttr
+			} else {
+				itemStack.erase(-1)
+				text += ch
+				stat = `Normal
+			}
+		} elsif (stat == `BlockAttr) {
+			if (ch == ']') {
+				itemParent.text = text
+				itemStack.erase(-1)
+				text = ''
+				stat = `Normal
+			} else {
+				text += ch
+			}
+		}
+	}
+	!text.isempty() && itemParent.AddChild(Item(`Text, text))
+	itemStack.first()
+}
+
+Parse(str).Print()
