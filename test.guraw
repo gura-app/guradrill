@@ -59,6 +59,7 @@ DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => 
 }
 
 DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
+	text = if (text == '*') {'\u00d7'} elsif (text == '/') {'\u00f7'} else {text}
 	textExt = cr.text_extents(text)
 	if (drawFlag) {
 		fontExt = cr.font_extents()
@@ -73,13 +74,15 @@ DrawItem(cr:cairo.context, x:number, y:number, item:Parser.Item, drawFlag:boolea
 		DrawText(cr, x, y, item.text, drawFlag)
 	} elsif (item.type == `Operator) {
 		widthEm = GetWidthEm(cr)
-		x += widthEm / 2
+		x += widthEm * .4
 		[x, y] = DrawSymbol(cr, x, y, item.text, drawFlag)
-		x += widthEm / 2
+		x += widthEm * .4
 		[x, y]
 	} elsif (item.type == `Bracket) {
+		widthEm = GetWidthEm(cr)
 		[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
 		[x, y] = DrawItems(cr, x, y, item.children, drawFlag)
+		x += widthEm * .15
 		[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
 		[x, y]
 	} elsif (item.type == `Block) {
@@ -116,9 +119,11 @@ PanelMain = class(wx.Panel) {
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			cr.set_font_size(30.0)
 			DrawItem(cr, 10, 100, Parser.Parse('10 + 30 ='))
-			DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) - 5 ='))
+			DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) * 5 / 2 - 7 ='))
 			DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
 			DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
+			DrawItem(cr, 10, 300, Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]'))
+			//DrawItem(cr, 10, 350, Parser.Parse('5x + 3 = 0 が成り立つとき、xの値をもとめよ。'))
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
 			//DrawTextWithBBox(cr, 10, 220, '0123456789')
