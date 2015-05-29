@@ -1,0 +1,131 @@
+#!/usr/bin/env gura
+import(re)
+
+Item = class {
+	public {type, text, children, width, widthUnit, align, border}
+	__init__(type:symbol, text?:string) = {
+		this.type = type	// `Root, `Block, `Text, `Operator
+		this.text = text
+		this.children = []
+		this.width = nil
+		this.widthUnit = nil
+		this.align = nil
+		this.border = false
+	}
+	AddChild(item:Item) = this.children.add(item)
+	Print(indentLevel:number => 0):void = {
+		if (this.type == `Root) {
+			printf('%*s%s:\n', indentLevel * 2, '', this.type)
+		} elsif (this.type == `Block) {
+			printf('%*s%s: width=%s,align=%s,border=%s\n',
+				   indentLevel * 2, '', this.type, this.width, this.align, this.border)
+		} else {
+			printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.text)
+		}
+		this.children:*Print(indentLevel + 1)
+	}
+}
+
+Parse(str:string) = {
+	itemStack = []
+	itemStack.add(Item(`Root))
+	text = ''
+	stat = `Normal
+	str.each {|ch|
+		itemParent = itemStack.last()
+		if (stat == `Normal) {
+			if (ch == '{') {
+				item = Item(`Block)
+				itemParent.AddChild(item)
+				itemStack.add(item)
+			} elsif (ch == '}') {
+				if (itemParent.type != `Block) {
+					raise(error.SyntacError, 'unbalanced bracket')
+				}
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+				stat = `BlockAttrPre
+			} elsif (ch == '(') {
+				item = Item(`Bracket)
+				itemParent.AddChild(item)
+				itemStack.add(item)
+			} elsif (ch == ')') {
+				if (itemParent.type != `Bracket) {
+					raise(error.SyntacError, 'unbalanced bracket')
+				}
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+				itemStack.erase(-1)
+				text = ''
+			} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+				itemParent.AddChild(Item(`Operator, ch))
+			} elsif (ch in [' ', '\t']) {
+				if (!text.isempty()) {
+					itemParent.AddChild(Item(`Text, text))
+					text = ''
+				}
+			} else {
+				text += ch
+			}
+		} elsif (stat == `BlockAttrPre) {
+			if (ch == '[') {
+				stat = `BlockAttr
+			} else {
+				itemStack.erase(-1)
+				text += ch
+				stat = `Normal
+			}
+		} elsif (stat == `BlockAttr) {
+			if (ch == ']') {
+				text.split(',') {|field|
+					field = field.strip()
+					if (m = field.match(r'([\d\.]+)([a-z]+)')) {
+						itemParent.width = m[1].tonumber()
+						itemParent.widthUnit = m[2]
+					} elsif (m = field.match(r'border=([a-z]+)')) {
+						if (m[1] == 'thin') {
+							itemParent.border = `thin
+						} elsif (m[1] == 'medium') {
+							itemParent.border = `medium
+						} elsif (m[1] == 'thick') {
+							itemParent.border = `thick
+						}
+					} elsif (field == 'border') {
+						itemParent.border = `medium
+					} elsif (field == 'center') {
+						itemParent.align = `center
+					} elsif (field == 'left') {
+						itemParent.align = `left
+					} elsif (field == 'right') {
+						itemParent.align = `right
+					} else {
+						// invalid attribute
+					}
+				}
+				itemStack.erase(-1)
+				text = ''
+				stat = `Normal
+			} else {
+				text += ch
+			}
+		}
+	}
+	!text.isempty() && itemParent.AddChild(Item(`Text, text))
+	itemStack.first()
+}
+
+if (__name__ == '__main__') {
+	//str = 'x^2+3x^3+4=0'
+	str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
+	//str = '123+345-1111'
+	
+	Parse(str).Print()
+}

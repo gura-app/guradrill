@@ -2,10 +2,10 @@
 # encoding: utf-8
 import(wx)
 import(cairo)
+import(Parser)
 
 App = class(wx.App) {
 	OnInit() = {
-
 		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(800, 600))
 		frame.Show()
 		true
@@ -15,14 +15,19 @@ App = class(wx.App) {
 DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 	xOff = 0
 	str.each {|ch|
-		extents = cr.text_extents(ch)
-		cr.rectangle(x + xOff + extents.x_bearing, y + extents.y_bearing,
-					 extents.width, extents.height)
-		xOff += extents.x_advance
+		textExt = cr.text_extents(ch)
+		cr.rectangle(x + xOff + textExt.x_bearing, y + textExt.y_bearing,
+					 textExt.width, textExt.height)
+		xOff += textExt.x_advance
 	}
-	//cr.set_line_width(1)
 	cr.set_source_rgba(0.8, 0.8, 0.8, 0.7)
 	cr.fill()
+	
+	cr.set_source_rgba(1.0, 0.8, 0.8, 1.0)
+	fontExt = cr.font_extents()
+	cr.rectangle(x, y, 100, -fontExt.ascent)
+	cr.fill()
+	
 	cr.move_to(x, y)
 	cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
 	cr.show_text(str)
@@ -34,6 +39,74 @@ fontFamilyName = dict {
 	`darwin => 'Hiragino Maru Gothic Pro'
 }[sys.platform]
 
+GetWidthEm(cr:cairo.context) = {
+	cr.text_extents('m').width
+}
+
+DrawBorder(cr:cairo.context, x:number, y:number, width:number) = {
+	fontExt = cr.font_extents()
+	cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
+	cr.stroke()
+}
+
+DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
+	textExt = cr.text_extents(text)
+	if (drawFlag) {
+		cr.move_to(x, y)
+		cr.show_text(text)
+	}
+	[x + textExt.x_advance, y]
+}
+
+DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
+	textExt = cr.text_extents(text)
+	if (drawFlag) {
+		fontExt = cr.font_extents()
+		cr.move_to(x, y - textExt.y_bearing - (fontExt.ascent + textExt.height) / 2)
+		cr.show_text(text)
+	}
+	[x + textExt.x_advance, y]
+}
+
+DrawItem(cr:cairo.context, x:number, y:number, item:Parser.Item, drawFlag:boolean => true) = {
+	if (item.type == `Text) {
+		DrawText(cr, x, y, item.text, drawFlag)
+	} elsif (item.type == `Operator) {
+		widthEm = GetWidthEm(cr)
+		x += widthEm / 2
+		[x, y] = DrawSymbol(cr, x, y, item.text, drawFlag)
+		x += widthEm / 2
+		[x, y]
+	} elsif (item.type == `Bracket) {
+		[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
+		[x, y] = DrawItems(cr, x, y, item.children, drawFlag)
+		[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
+		[x, y]
+	} elsif (item.type == `Block) {
+		width = item.width * GetWidthEm(cr)
+		[wdContent, htContent] = ExtentItems(cr, item.children) // htContent is always zero
+		DrawItems(cr, x + (width - wdContent) / 2, y, item.children, drawFlag)
+		if (item.border && drawFlag) {
+			DrawBorder(cr, x, y, width)
+		}
+		[x + width, y]
+	} else {
+		DrawItems(cr, x, y, item.children, drawFlag)
+	}
+}
+
+DrawItems(cr:cairo.context, x:number, y:number, items[]:Parser.Item, drawFlag:boolean => true) = {
+	items.each {|item|
+		[x, y] = DrawItem(cr, x, y, item, drawFlag)
+	}
+	[x, y]
+}
+
+ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
+	[x, y] = DrawItems(cr, 0, 0, items, false)
+	[x, 0]
+}
+
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
@@ -41,12 +114,16 @@ PanelMain = class(wx.Panel) {
 		this.img.cairo {|cr|
 			//fontFamilyName = 'times'
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-			cr.set_font_size(40.0)
-			DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-			DrawTextWithBBox(cr, 10, 140, 'abcdefghijklmnopqrstuvwxyz')
-			DrawTextWithBBox(cr, 10, 220, '0123456789')
-			DrawTextWithBBox(cr, 10, 260, '=+-\u00d7\u00f7\u03c0')
-			DrawTextWithBBox(cr, 10, 300, '3.234 + 11234 \u00f7 (432 + 123) = ')
+			cr.set_font_size(30.0)
+			DrawItem(cr, 10, 100, Parser.Parse('10 + 30 ='))
+			DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) - 5 ='))
+			DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
+			DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
+			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
+			//DrawTextWithBBox(cr, 10, 220, '0123456789')
+			//DrawTextWithBBox(cr, 10, 260, '=+-\u00d7\u00f7\u03c0' + chr(0x0080..0x00ff).join())
+			//DrawTextWithBBox(cr, 10, 300, '3.234 + 11234 \u00f7 (432 + 123) = ')
 			// 3//4 + 2//3 =
 			// [1000]{5c}+[123]{5c}=[]{5b}
 		}
