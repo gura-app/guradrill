@@ -39,77 +39,6 @@ fontFamilyName = dict {
 	`darwin => 'Hiragino Maru Gothic Pro'
 }[sys.platform]
 
-GetWidthEm(cr:cairo.context) = {
-	cr.text_extents('m').width
-}
-
-DrawBorder(cr:cairo.context, x:number, y:number, width:number) = {
-	fontExt = cr.font_extents()
-	cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
-	cr.stroke()
-}
-
-DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
-	textExt = cr.text_extents(text)
-	if (drawFlag) {
-		cr.move_to(x, y)
-		cr.show_text(text)
-	}
-	[x + textExt.x_advance, y]
-}
-
-DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
-	text = if (text == '*') {'\u00d7'} elsif (text == '/') {'\u00f7'} else {text}
-	textExt = cr.text_extents(text)
-	if (drawFlag) {
-		fontExt = cr.font_extents()
-		cr.move_to(x, y - textExt.y_bearing - (fontExt.ascent + textExt.height) / 2)
-		cr.show_text(text)
-	}
-	[x + textExt.x_advance, y]
-}
-
-DrawItem(cr:cairo.context, x:number, y:number, item:Parser.Item, drawFlag:boolean => true) = {
-	if (item.type == `Text) {
-		DrawText(cr, x, y, item.text, drawFlag)
-	} elsif (item.type == `Operator) {
-		widthEm = GetWidthEm(cr)
-		x += widthEm * .4
-		[x, y] = DrawSymbol(cr, x, y, item.text, drawFlag)
-		x += widthEm * .4
-		[x, y]
-	} elsif (item.type == `Bracket) {
-		widthEm = GetWidthEm(cr)
-		[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
-		[x, y] = DrawItems(cr, x, y, item.children, drawFlag)
-		x += widthEm * .15
-		[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
-		[x, y]
-	} elsif (item.type == `Block) {
-		width = item.width * GetWidthEm(cr)
-		[wdContent, htContent] = ExtentItems(cr, item.children) // htContent is always zero
-		DrawItems(cr, x + (width - wdContent) / 2, y, item.children, drawFlag)
-		if (item.border && drawFlag) {
-			DrawBorder(cr, x, y, width)
-		}
-		[x + width, y]
-	} else {
-		DrawItems(cr, x, y, item.children, drawFlag)
-	}
-}
-
-DrawItems(cr:cairo.context, x:number, y:number, items[]:Parser.Item, drawFlag:boolean => true) = {
-	items.each {|item|
-		[x, y] = DrawItem(cr, x, y, item, drawFlag)
-	}
-	[x, y]
-}
-
-ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
-	[x, y] = DrawItems(cr, 0, 0, items, false)
-	[x, 0]
-}
-
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
@@ -118,11 +47,11 @@ PanelMain = class(wx.Panel) {
 			//fontFamilyName = 'times'
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			cr.set_font_size(30.0)
-			DrawItem(cr, 10, 100, Parser.Parse('10 + 30 ='))
-			DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) * 5 / 2 - 7 ='))
-			DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
-			DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
-			DrawItem(cr, 10, 300, Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]'))
+			//DrawItem(cr, 10, 100, Parser.Parse('10 + 30 ='))
+			//DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) * 5 / 2 - 7 ='))
+			//DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
+			//DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
+			Parser.DrawItem(cr, 10, 300, Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]'))
 			//DrawItem(cr, 10, 350, Parser.Parse('5x + 3 = 0 が成り立つとき、xの値をもとめよ。'))
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
