@@ -98,12 +98,12 @@ ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 	[x, 0]
 }
 
-Parse(str:string) = {
+Parse(content:string) = {
 	itemStack = []
 	itemStack.add(Item(`Root))
 	text = ''
 	stat = `Normal
-	str.each {|ch|
+	content.each {|ch|
 		itemParent = itemStack.last()
 		if (stat == `Normal) {
 			if (ch == '{') {
@@ -192,6 +192,10 @@ Parse(str:string) = {
 	}
 	!text.isempty() && itemParent.AddChild(Item(`Text, text))
 	itemStack.first()
+}
+
+Render(cr:cairo.context, x:number, y:number, content:string) = {
+	Parse(content).Draw(cr, x, y)
 }
 
 if (__name__ == '__main__') {

@@ -2,7 +2,7 @@
 # encoding: utf-8
 import(wx)
 import(cairo)
-import(Parser)
+import(Renderer)
 
 App = class(wx.App) {
 	OnInit() = {
@@ -47,12 +47,12 @@ PanelMain = class(wx.Panel) {
 			//fontFamilyName = 'times'
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			cr.set_font_size(30.0)
-			//DrawItem(cr, 10, 100, Parser.Parse('10 + 30 ='))
-			//DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) * 5 / 2 - 7 ='))
-			//DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
-			//DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
-			Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]').Draw(cr, 10, 300)
-			//DrawItem(cr, 10, 350, Parser.Parse('5x + 3 = 0 が成り立つとき、xの値をもとめよ。'))
+			Renderer.Render(cr, 10, 100, '10 + 30 =')
+			Renderer.Render(cr, 10, 150, '(10 + 30) * 5 / 2 - 7 =')
+			Renderer.Render(cr, 10, 200, '{10}[3em] =')
+			Renderer.Render(cr, 10, 250, '{10}[3em] + {20}[3em] = {}[3em,border]')
+			Renderer.Render(cr, 10, 300, '{10}[3em,border] + {}[3em,border] = {}[3em,border]')
+			//Renderer.Render(cr, 10, 350, '5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
 			//DrawTextWithBBox(cr, 10, 220, '0123456789')
