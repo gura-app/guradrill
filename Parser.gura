@@ -2,6 +2,59 @@
 import(re)
 import(cairo)
 
+Item = class {
+	public {type, text, children, width, widthUnit, align, border}
+	__init__(type:symbol, text?:string) = {
+		this.type = type	// `Root, `Block, `Text, `Operator
+		this.text = text
+		this.children = []
+		this.width = nil
+		this.widthUnit = nil
+		this.align = nil
+		this.border = false
+	}
+	AddChild(item:Item) = this.children.add(item)
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		if (this.type == `Text) {
+			DrawText(cr, x, y, this.text, drawFlag)
+		} elsif (this.type == `Operator) {
+			widthEm = GetWidthEm(cr)
+			x += widthEm * .4
+			[x, y] = DrawSymbol(cr, x, y, this.text, drawFlag)
+			x += widthEm * .4
+			[x, y]
+		} elsif (this.type == `Bracket) {
+			widthEm = GetWidthEm(cr)
+			[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
+			[x, y] = DrawItems(cr, x, y, this.children, drawFlag)
+			x += widthEm * .15
+			[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
+			[x, y]
+		} elsif (this.type == `Block) {
+			width = this.width * GetWidthEm(cr)
+			[wdContent, htContent] = ExtentItems(cr, this.children) // htContent is always zero
+			DrawItems(cr, x + (width - wdContent) / 2, y, this.children, drawFlag)
+			if (this.border && drawFlag) {
+				DrawBorder(cr, x, y, width)
+			}
+			[x + width, y]
+		} else {
+			DrawItems(cr, x, y, this.children, drawFlag)
+		}
+	}
+	Print(indentLevel:number => 0):void = {
+		if (this.type == `Root) {
+			printf('%*s%s:\n', indentLevel * 2, '', this.type)
+		} elsif (this.type == `Block) {
+			printf('%*s%s: width=%s,align=%s,border=%s\n',
+				   indentLevel * 2, '', this.type, this.width, this.align, this.border)
+		} else {
+			printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.text)
+		}
+		this.children:*Print(indentLevel + 1)
+	}
+}
+
 GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
@@ -32,65 +85,10 @@ DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean =
 	[x + textExt.x_advance, y]
 }
 
-Item = class {
-	public {type, text, children, width, widthUnit, align, border}
-	__init__(type:symbol, text?:string) = {
-		this.type = type	// `Root, `Block, `Text, `Operator
-		this.text = text
-		this.children = []
-		this.width = nil
-		this.widthUnit = nil
-		this.align = nil
-		this.border = false
-	}
-	AddChild(item:Item) = this.children.add(item)
-	
-
-	Print(indentLevel:number => 0):void = {
-		if (this.type == `Root) {
-			printf('%*s%s:\n', indentLevel * 2, '', this.type)
-		} elsif (this.type == `Block) {
-			printf('%*s%s: width=%s,align=%s,border=%s\n',
-				   indentLevel * 2, '', this.type, this.width, this.align, this.border)
-		} else {
-			printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.text)
-		}
-		this.children:*Print(indentLevel + 1)
-	}
-}
-
-DrawItem(cr:cairo.context, x:number, y:number, item:Parser.Item, drawFlag:boolean => true) = {
-	if (item.type == `Text) {
-		DrawText(cr, x, y, item.text, drawFlag)
-	} elsif (item.type == `Operator) {
-		widthEm = GetWidthEm(cr)
-		x += widthEm * .4
-		[x, y] = DrawSymbol(cr, x, y, item.text, drawFlag)
-		x += widthEm * .4
-		[x, y]
-	} elsif (item.type == `Bracket) {
-		widthEm = GetWidthEm(cr)
-		[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
-		[x, y] = DrawItems(cr, x, y, item.children, drawFlag)
-		x += widthEm * .15
-		[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
-		[x, y]
-	} elsif (item.type == `Block) {
-		width = item.width * GetWidthEm(cr)
-		[wdContent, htContent] = ExtentItems(cr, item.children) // htContent is always zero
-		DrawItems(cr, x + (width - wdContent) / 2, y, item.children, drawFlag)
-		if (item.border && drawFlag) {
-			DrawBorder(cr, x, y, width)
-		}
-		[x + width, y]
-	} else {
-		DrawItems(cr, x, y, item.children, drawFlag)
-	}
-}
-
-DrawItems(cr:cairo.context, x:number, y:number, items[]:Parser.Item, drawFlag:boolean => true) = {
+DrawItems(cr:cairo.context, x:number, y:number,
+		  items[]:Parser.Item, drawFlag:boolean => true) = {
 	items.each {|item|
-		[x, y] = DrawItem(cr, x, y, item, drawFlag)
+		[x, y] = item.Draw(cr, x, y, drawFlag)
 	}
 	[x, y]
 }

@@ -51,7 +51,7 @@ PanelMain = class(wx.Panel) {
 			//DrawItem(cr, 10, 150, Parser.Parse('(10 + 30) * 5 / 2 - 7 ='))
 			//DrawItem(cr, 10, 200, Parser.Parse('{10}[3em] ='))
 			//DrawItem(cr, 10, 250, Parser.Parse('{10}[3em] + {20}[3em] = {}[3em,border]'))
-			Parser.DrawItem(cr, 10, 300, Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]'))
+			Parser.Parse('{10}[3em,border] + {}[3em,border] = {}[3em,border]').Draw(cr, 10, 300)
 			//DrawItem(cr, 10, 350, Parser.Parse('5x + 3 = 0 が成り立つとき、xの値をもとめよ。'))
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
