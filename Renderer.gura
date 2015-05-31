@@ -9,6 +9,8 @@ borderThicknessDict = %{
 	`thick => 1
 }
 
+Extent = struct(x_advance:number, height:number)
+
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
 	__init__(type:symbol, text?:string) = {
@@ -27,26 +29,32 @@ Item = class {
 		if (this.type == `Text) {
 			DrawText(cr, x, y, this.text, drawFlag)
 		} elsif (this.type == `Operator) {
+			x0 = x
 			widthEm = GetWidthEm(cr)
 			x += widthEm * .4
-			[x, y] = DrawSymbol(cr, x, y, this.text, drawFlag)
+			ext = DrawSymbol(cr, x, y, this.text, drawFlag)
+			x += ext.x_advance
 			x += widthEm * .4
-			[x, y]
+			Extent(x - x0, 0)
 		} elsif (this.type == `Bracket) {
+			x0 = x
 			widthEm = GetWidthEm(cr)
-			[x, y] = DrawSymbol(cr, x, y, '(', drawFlag)
-			[x, y] = DrawItems(cr, x, y, this.children, drawFlag)
+			ext = DrawSymbol(cr, x, y, '(', drawFlag)
+			x += ext.x_advance
+			ext = DrawItems(cr, x, y, this.children, drawFlag)
+			x += ext.x_advance
 			x += widthEm * .15
-			[x, y] = DrawSymbol(cr, x, y, ')', drawFlag)
-			[x, y]
+			ext = DrawSymbol(cr, x, y, ')', drawFlag)
+			x += ext.x_advance
+			Extent(x - x0, 0)
 		} elsif (this.type == `Block) {
 			width = this.width * GetWidthEm(cr)
-			[wdContent, htContent] = ExtentItems(cr, this.children) // htContent is always zero
-			DrawItems(cr, x + (width - wdContent) / 2, y, this.children, drawFlag)
+			ext = ExtentItems(cr, this.children)
+			DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
 			if (this.border && drawFlag) {
 				DrawBorder(cr, x, y, width, this.border)
 			}
-			[x + width, y]
+			Extent(width, 0)
 		} else {
 			DrawItems(cr, x, y, this.children, drawFlag)
 		}
@@ -83,7 +91,7 @@ DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => 
 		cr.move_to(x, y)
 		cr.show_text(text)
 	}
-	[x + textExt.x_advance, y]
+	Extent(textExt.x_advance, 0)
 }
 
 DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
@@ -94,20 +102,21 @@ DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean =
 		cr.move_to(x, y - textExt.y_bearing - (fontExt.ascent + textExt.height) / 2)
 		cr.show_text(text)
 	}
-	[x + textExt.x_advance, y]
+	Extent(textExt.x_advance, 0)
 }
 
 DrawItems(cr:cairo.context, x:number, y:number,
 		  items[]:Parser.Item, drawFlag:boolean => true) = {
+	x0 = x
 	items.each {|item|
-		[x, y] = item.Draw(cr, x, y, drawFlag)
+		ext = item.Draw(cr, x, y, drawFlag)
+		x += ext.x_advance
 	}
-	[x, y]
+	Extent(x - x0, 0)
 }
 
 ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
-	[x, y] = DrawItems(cr, 0, 0, items, false)
-	[x, 0]
+	DrawItems(cr, 0, 0, items, false)
 }
 
 AddChildItem(itemStack[]:Item, item:Item):void = {
@@ -242,8 +251,8 @@ if (__name__ == '__main__') {
 	//str = 'x^2+3x^3+4=0'
 	//str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
 	//str = '123+345-1111'
-	//str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
-	str = '1 % {2 % 3}'
-	str = '{1 % 2} % {2 % 3}'
+	str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
+	//str = '1 % {2 % 3}'
+	//str = '{1 % 2} % {2 % 3}'
 	Parse(str).Print()
 }
