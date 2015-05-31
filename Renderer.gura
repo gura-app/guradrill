@@ -25,39 +25,6 @@ Item = class {
 	AddChild(item:Item) = this.children.add(item)
 	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
 	EraseLastChild() = this.children.erase(-1)
-	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
-		if (this.type == `Root) {
-			DrawItems(cr, x, y, this.children, drawFlag)
-		} elsif (this.type == `Block) {
-			width = this.width * GetWidthEm(cr)
-			ext = ExtentItems(cr, this.children)
-			DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
-			DrawBorder(cr, x, y, width, this.border, drawFlag)
-		} elsif (this.type == `Text) {
-			DrawText(cr, x, y, this.text, drawFlag)
-		} elsif (this.type == `Operator) {
-			x0 = x
-			widthEm = GetWidthEm(cr)
-			x += widthEm * .4
-			ext = DrawSymbol(cr, x, y, this.text, drawFlag)
-			x += ext.x_advance
-			x += widthEm * .4
-			Extent(x - x0, 0)
-		} elsif (this.type == `Bracket) {
-			x0 = x
-			widthEm = GetWidthEm(cr)
-			ext = DrawSymbol(cr, x, y, '(', drawFlag)
-			x += ext.x_advance
-			ext = DrawItems(cr, x, y, this.children, drawFlag)
-			x += ext.x_advance
-			x += widthEm * .15
-			ext = DrawSymbol(cr, x, y, ')', drawFlag)
-			x += ext.x_advance
-			Extent(x - x0, 0)
-		} elsif (this.type == `Rational) {
-			
-		}
-	}
 	Print(indentLevel:number => 0):void = {
 		if (this.type == `Root) {
 			printf('%*s%s:\n', indentLevel * 2, '', this.type)
@@ -75,26 +42,61 @@ Item = class {
 
 ItemRoot = class(Item) {
 	__init__() = {|`Root|}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		DrawItems(cr, x, y, this.children, drawFlag)
+	}
 }
 
 ItemBlock = class(Item) {
 	__init__() = {|`Block|}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		width = this.width * GetWidthEm(cr)
+		ext = ExtentItems(cr, this.children)
+		DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
+		DrawBorder(cr, x, y, width, this.border, drawFlag)
+	}
 }
 
 ItemText = class(Item) {
 	__init__(text:string) = {|`Text| this.text = text}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		DrawText(cr, x, y, this.text, drawFlag)
+	}
 }
 
 ItemOperator = class(Item) {
 	__init__(text:string) = {|`Operator| this.text = text}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		x0 = x
+		widthEm = GetWidthEm(cr)
+		x += widthEm * .4
+		ext = DrawSymbol(cr, x, y, this.text, drawFlag)
+		x += ext.x_advance
+		x += widthEm * .4
+		Extent(x - x0, 0)
+	}
 }
 
 ItemBracket = class(Item) {
 	__init__() = {|`Bracket|}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		x0 = x
+		widthEm = GetWidthEm(cr)
+		ext = DrawSymbol(cr, x, y, '(', drawFlag)
+		x += ext.x_advance
+		ext = DrawItems(cr, x, y, this.children, drawFlag)
+		x += ext.x_advance
+		x += widthEm * .15
+		ext = DrawSymbol(cr, x, y, ')', drawFlag)
+		x += ext.x_advance
+		Extent(x - x0, 0)
+	}
 }
 
 ItemRational = class(Item) {
 	__init__() = {|`Rational|}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+	}
 }
 
 GetWidthEm(cr:cairo.context) = {
