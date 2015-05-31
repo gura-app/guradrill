@@ -52,6 +52,7 @@ PanelMain = class(wx.Panel) {
 			Renderer.Render(cr, 10, 200, '{10}[3em] =')
 			Renderer.Render(cr, 10, 250, '{10}[3em] + {20}[3em] = {}[3em,border]')
 			Renderer.Render(cr, 10, 300, '{10}[3em,border] + {}[3em,border] = {}[3em,border]')
+			Renderer.Render(cr, 10, 350, '3 % 5 + 2 % 3 =')
 			//Renderer.Render(cr, 10, 350, '5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
 			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')

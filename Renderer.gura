@@ -25,6 +25,8 @@ Item = class {
 	AddChild(item:Item) = this.children.add(item)
 	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
 	EraseLastChild() = this.children.erase(-1)
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {}
+	CalcExtent(cr:cairo.context) = this.Draw(cr, 0, 0, false)
 	Print(indentLevel:number => 0):void = {
 		if (this.type == `Root) {
 			printf('%*s%s:\n', indentLevel * 2, '', this.type)
@@ -51,7 +53,7 @@ ItemBlock = class(Item) {
 	__init__() = {|`Block|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
 		width = this.width * GetWidthEm(cr)
-		ext = ExtentItems(cr, this.children)
+		ext = CalcExtentItems(cr, this.children)
 		DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
 		DrawBorder(cr, x, y, width, this.border, drawFlag)
 	}
@@ -96,6 +98,12 @@ ItemBracket = class(Item) {
 ItemRational = class(Item) {
 	__init__() = {|`Rational|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		extNumer = this.children[0].Draw(cr, x, y - 10, drawFlag)
+		extDenom = this.children[1].Draw(cr, x, y + 10, drawFlag)
+		cr.move_to(x, y)
+		cr.rel_line_to(30, 0)
+		cr.stroke()
+		extNumer
 	}
 }
 
@@ -144,11 +152,7 @@ DrawItems(cr:cairo.context, x:number, y:number,
 	Extent(x - x0, 0)
 }
 
-ExtentItem(cr:cairo.context, item:Parser.Item) = {
-	item.Draw(cr, 0, 0, false)
-}
-
-ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
+CalcExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 	DrawItems(cr, 0, 0, items, false)
 }
 
