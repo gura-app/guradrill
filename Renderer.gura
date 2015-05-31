@@ -1,19 +1,28 @@
 #!/usr/bin/env gura
 import(re)
 import(cairo)
+import(utils)
+
+borderThicknessDict = %{
+	`thin => .1
+	`medium => .5
+	`thick => 1
+}
 
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
 	__init__(type:symbol, text?:string) = {
-		this.type = type	// `Root, `Block, `Text, `Operator
-		this.text = text
-		this.children = []
-		this.width = nil
-		this.widthUnit = nil
-		this.align = nil
-		this.border = false
+		this.type = type		// `Root, `Block, `Text, `Operator, `Rational
+		this.text = text		// valid for `Text and `Operator
+		this.children = []		// valid for `Root and `Block
+		this.width = nil		// valid for `Block
+		this.widthUnit = nil	// valid for `Block
+		this.align = nil		// valid for `Block
+		this.border = false		// valid for `Block
 	}
 	AddChild(item:Item) = this.children.add(item)
+	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
+	EraseLastChild() = this.children.erase(-1)
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
 		if (this.type == `Text) {
 			DrawText(cr, x, y, this.text, drawFlag)
@@ -35,7 +44,7 @@ Item = class {
 			[wdContent, htContent] = ExtentItems(cr, this.children) // htContent is always zero
 			DrawItems(cr, x + (width - wdContent) / 2, y, this.children, drawFlag)
 			if (this.border && drawFlag) {
-				DrawBorder(cr, x, y, width)
+				DrawBorder(cr, x, y, width, this.border)
 			}
 			[x + width, y]
 		} else {
@@ -48,6 +57,8 @@ Item = class {
 		} elsif (this.type == `Block) {
 			printf('%*s%s: width=%s,align=%s,border=%s\n',
 				   indentLevel * 2, '', this.type, this.width, this.align, this.border)
+		} elsif (this.type == `Rational) {
+			printf('%*s%s:\n', indentLevel * 2, '', this.type)
 		} else {
 			printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.text)
 		}
@@ -59,9 +70,10 @@ GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
 
-DrawBorder(cr:cairo.context, x:number, y:number, width:number) = {
+DrawBorder(cr:cairo.context, x:number, y:number, width:number, border:symbol) = {
 	fontExt = cr.font_extents()
 	cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
+	cr.set_line_width(borderThicknessDict[border])
 	cr.stroke()
 }
 
@@ -98,65 +110,92 @@ ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 	[x, 0]
 }
 
+AddChildItem(itemStack[]:Item, item:Item):void = {
+	itemParent = itemStack.last()
+	itemParent.AddChild(item)
+	if (itemParent.type == `Rational && itemParent.children.len() >= 2) {
+		itemStack.erase(-1)
+	}
+}
+
 Parse(content:string) = {
 	itemStack = []
 	itemStack.add(Item(`Root))
 	text = ''
 	stat = `Normal
 	content.each {|ch|
-		itemParent = itemStack.last()
-		if (stat == `Normal) {
-			if (ch == '{') {
-				item = Item(`Block)
-				itemParent.AddChild(item)
-				itemStack.add(item)
-			} elsif (ch == '}') {
-				if (itemParent.type != `Block) {
-					raise(error.SyntacError, 'unbalanced bracket')
-				}
-				if (!text.isempty()) {
-					itemParent.AddChild(Item(`Text, text))
+		utils.pushback {|pb|
+			if (stat == `Normal) {
+				if (ch == '{') {
+					item = Item(`Block)
+					AddChildItem(itemStack, item)
+					itemStack.add(item)
+				} elsif (ch == '}') {
+					itemParent = itemStack.last()
+					if (!text.isempty()) {
+						AddChildItem(itemStack, Item(`Text, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemParent.type != `Block) {
+						raise(error.SyntaxError, 'unbalanced bracket')
+					}
+					stat = `BlockAttrPre
+				} elsif (ch == '(') {
+					item = Item(`Bracket)
+					AddChildItem(itemStack, item)
+					itemStack.add(item)
+				} elsif (ch == ')') {
+					itemParent = itemStack.last()
+					if (!text.isempty()) {
+						AddChildItem(itemStack, Item(`Text, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemParent.type != `Bracket) {
+						raise(error.SyntacError, 'unbalanced bracket')
+					}
+					itemStack.erase(-1)
 					text = ''
+				} elsif (ch == '%') {
+					itemParent = itemStack.last()
+					if (!text.isempty()) {
+						AddChildItem(itemStack, Item(`Text, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemLast = itemParent.GetLastChild()) {
+						itemParent.EraseLastChild()
+						item = Item(`Rational)
+						AddChildItem(itemStack, item)
+						item.AddChild(itemLast)
+						itemStack.add(item)
+					}
+				} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
+					if (!text.isempty()) {
+						AddChildItem(itemStack, Item(`Text, text))
+						text = ''
+					}
+					AddChildItem(itemStack, Item(`Operator, ch))
+				} elsif (ch in [' ', '\t']) {
+					if (!text.isempty()) {
+						AddChildItem(itemStack, Item(`Text, text))
+						text = ''
+					}
+				} else {
+					text += ch
 				}
-				stat = `BlockAttrPre
-			} elsif (ch == '(') {
-				item = Item(`Bracket)
-				itemParent.AddChild(item)
-				itemStack.add(item)
-			} elsif (ch == ')') {
-				if (itemParent.type != `Bracket) {
-					raise(error.SyntacError, 'unbalanced bracket')
+			} elsif (stat == `BlockAttrPre) {
+				if (ch == '[') {
+					stat = `BlockAttr
+				} else {
+					itemStack.erase(-1)
+					pb.Pushback()
+					stat = `Normal
 				}
-				if (!text.isempty()) {
-					itemParent.AddChild(Item(`Text, text))
-					text = ''
-				}
-				itemStack.erase(-1)
-				text = ''
-			} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
-				if (!text.isempty()) {
-					itemParent.AddChild(Item(`Text, text))
-					text = ''
-				}
-				itemParent.AddChild(Item(`Operator, ch))
-			} elsif (ch in [' ', '\t']) {
-				if (!text.isempty()) {
-					itemParent.AddChild(Item(`Text, text))
-					text = ''
-				}
-			} else {
-				text += ch
-			}
-		} elsif (stat == `BlockAttrPre) {
-			if (ch == '[') {
-				stat = `BlockAttr
-			} else {
-				itemStack.erase(-1)
-				text += ch
-				stat = `Normal
-			}
-		} elsif (stat == `BlockAttr) {
+			} elsif (stat == `BlockAttr) {
 			if (ch == ']') {
+				itemParent = itemStack.last()
 				text.split(',') {|field|
 					field = field.strip()
 					if (m = field.match(r'([\d\.]+)([a-z]+)')) {
@@ -185,12 +224,13 @@ Parse(content:string) = {
 				itemStack.erase(-1)
 				text = ''
 				stat = `Normal
-			} else {
-				text += ch
+				} else {
+					text += ch
+				}
 			}
 		}
 	}
-	!text.isempty() && itemParent.AddChild(Item(`Text, text))
+	!text.isempty() && AddChildItem(itemStack, Item(`Text, text))
 	itemStack.first()
 }
 
@@ -200,8 +240,10 @@ Render(cr:cairo.context, x:number, y:number, content:string) = {
 
 if (__name__ == '__main__') {
 	//str = 'x^2+3x^3+4=0'
-	str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
+	//str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
 	//str = '123+345-1111'
-	
+	//str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
+	str = '1 % {2 % 3}'
+	str = '{1 % 2} % {2 % 3}'
 	Parse(str).Print()
 }
