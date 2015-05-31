@@ -13,20 +13,27 @@ Extent = struct(x_advance:number, height:number)
 
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
-	__init__(type:symbol, text?:string) = {
-		this.type = type		// `Root, `Block, `Text, `Operator, `Rational
-		this.text = text		// valid for `Text and `Operator
+	__init__(type:symbol) = {
+		this.type = type		// `Root, `Block, `Text, `Operator, `Bracket, `Rational
+		this.text = nil			// valid for `Text and `Operator
 		this.children = []		// valid for `Root and `Block
 		this.width = nil		// valid for `Block
 		this.widthUnit = nil	// valid for `Block
 		this.align = nil		// valid for `Block
-		this.border = false		// valid for `Block
+		this.border = nil		// valid for `Block
 	}
 	AddChild(item:Item) = this.children.add(item)
 	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
 	EraseLastChild() = this.children.erase(-1)
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
-		if (this.type == `Text) {
+		if (this.type == `Root) {
+			DrawItems(cr, x, y, this.children, drawFlag)
+		} elsif (this.type == `Block) {
+			width = this.width * GetWidthEm(cr)
+			ext = ExtentItems(cr, this.children)
+			DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
+			DrawBorder(cr, x, y, width, this.border, drawFlag)
+		} elsif (this.type == `Text) {
 			DrawText(cr, x, y, this.text, drawFlag)
 		} elsif (this.type == `Operator) {
 			x0 = x
@@ -47,16 +54,8 @@ Item = class {
 			ext = DrawSymbol(cr, x, y, ')', drawFlag)
 			x += ext.x_advance
 			Extent(x - x0, 0)
-		} elsif (this.type == `Block) {
-			width = this.width * GetWidthEm(cr)
-			ext = ExtentItems(cr, this.children)
-			DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
-			if (this.border && drawFlag) {
-				DrawBorder(cr, x, y, width, this.border)
-			}
-			Extent(width, 0)
-		} else {
-			DrawItems(cr, x, y, this.children, drawFlag)
+		} elsif (this.type == `Rational) {
+			
 		}
 	}
 	Print(indentLevel:number => 0):void = {
@@ -74,15 +73,43 @@ Item = class {
 	}
 }
 
+ItemRoot = class(Item) {
+	__init__() = {|`Root|}
+}
+
+ItemBlock = class(Item) {
+	__init__() = {|`Block|}
+}
+
+ItemText = class(Item) {
+	__init__(text:string) = {|`Text| this.text = text}
+}
+
+ItemOperator = class(Item) {
+	__init__(text:string) = {|`Operator| this.text = text}
+}
+
+ItemBracket = class(Item) {
+	__init__() = {|`Bracket|}
+}
+
+ItemRational = class(Item) {
+	__init__() = {|`Rational|}
+}
+
 GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
 
-DrawBorder(cr:cairo.context, x:number, y:number, width:number, border:symbol) = {
+DrawBorder(cr:cairo.context, x:number, y:number, width:number,
+		   border:symbol:nil, drawFlag:boolean => true) = {
 	fontExt = cr.font_extents()
-	cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
-	cr.set_line_width(borderThicknessDict[border])
-	cr.stroke()
+	if (border && drawFlag) {
+		cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
+		cr.set_line_width(borderThicknessDict[border])
+		cr.stroke()
+	}
+	Extent(width, 0)
 }
 
 DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
@@ -115,6 +142,10 @@ DrawItems(cr:cairo.context, x:number, y:number,
 	Extent(x - x0, 0)
 }
 
+ExtentItem(cr:cairo.context, item:Parser.Item) = {
+	item.Draw(cr, 0, 0, false)
+}
+
 ExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 	DrawItems(cr, 0, 0, items, false)
 }
@@ -129,20 +160,20 @@ AddChildItem(itemStack[]:Item, item:Item):void = {
 
 Parse(content:string) = {
 	itemStack = []
-	itemStack.add(Item(`Root))
+	itemStack.add(ItemRoot())
 	text = ''
 	stat = `Normal
 	content.each {|ch|
 		utils.pushback {|pb|
 			if (stat == `Normal) {
 				if (ch == '{') {
-					item = Item(`Block)
+					item = ItemBlock()
 					AddChildItem(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == '}') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, Item(`Text, text))
+						AddChildItem(itemStack, ItemText(text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -151,13 +182,13 @@ Parse(content:string) = {
 					}
 					stat = `BlockAttrPre
 				} elsif (ch == '(') {
-					item = Item(`Bracket)
+					item = ItemBracket()
 					AddChildItem(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == ')') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, Item(`Text, text))
+						AddChildItem(itemStack, ItemText(text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -169,26 +200,26 @@ Parse(content:string) = {
 				} elsif (ch == '%') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, Item(`Text, text))
+						AddChildItem(itemStack, ItemText(text))
 						itemParent = itemStack.last()
 						text = ''
 					}
 					if (itemLast = itemParent.GetLastChild()) {
 						itemParent.EraseLastChild()
-						item = Item(`Rational)
+						item = ItemRational()
 						AddChildItem(itemStack, item)
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
 				} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, Item(`Text, text))
+						AddChildItem(itemStack, ItemText(text))
 						text = ''
 					}
-					AddChildItem(itemStack, Item(`Operator, ch))
+					AddChildItem(itemStack, ItemOperator(ch))
 				} elsif (ch in [' ', '\t']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, Item(`Text, text))
+						AddChildItem(itemStack, ItemText(text))
 						text = ''
 					}
 				} else {
@@ -239,7 +270,7 @@ Parse(content:string) = {
 			}
 		}
 	}
-	!text.isempty() && AddChildItem(itemStack, Item(`Text, text))
+	!text.isempty() && AddChildItem(itemStack, ItemText(text))
 	itemStack.first()
 }
 
