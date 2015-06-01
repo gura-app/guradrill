@@ -65,13 +65,25 @@ ItemRoot = class(Item) {
 ItemBlock = class(Item) {
 	__init__() = {|`Block|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
-		ext = CalcExtentItems(cr, this.children)
+		if (this.children.isempty()) {
+			fontExt = cr.font_extents()
+			ext = Extent(0, fontExt.ascent, 0)
+		} else {
+			ext = CalcExtentItems(cr, this.children)
+		}
 		if (this.width) {
 			width = this.width * GetWidthEm(cr)
 		} else {
 			width = ext.x_advance
 		}
-		DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
+		offsetContent = if (this.align == `left) {
+			0
+		} elsif (this.align == `right) {
+			width - ext.x_advance
+		} else {
+			(width - ext.x_advance) / 2
+		}
+		DrawItems(cr, x + offsetContent, y, this.children, drawFlag)
 		if (this.border && drawFlag) {
 			DrawBorder(cr, x, y, width, ext.ascent, ext.descent, this.border)
 		} else {
@@ -338,7 +350,7 @@ Parse(content:string) = {
 				itemParent = itemStack.last()
 				text.split(',') {|field|
 					field = field.strip()
-					if (m = field.match(r'([\d\.]+)([a-z]+)')) {
+					if (m = field.match(r'width=([\d\.]+)([a-z]+)')) {
 						itemParent.width = m[1].tonumber()
 						itemParent.widthUnit = m[2]
 					} elsif (m = field.match(r'border=([a-z]+)')) {
