@@ -9,8 +9,14 @@ borderThicknessDict = %{
 	`thick => 1
 }
 
+//------------------------------------------------------------------------------
+// Extent
+//------------------------------------------------------------------------------
 Extent = struct(x_advance:number, ascent:number, descent:number)
 
+//------------------------------------------------------------------------------
+// Item
+//------------------------------------------------------------------------------
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
 	__init__(type:symbol) = {
@@ -43,6 +49,9 @@ Item = class {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemRoot
+//------------------------------------------------------------------------------
 ItemRoot = class(Item) {
 	__init__() = {|`Root|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -50,6 +59,9 @@ ItemRoot = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemBlock
+//------------------------------------------------------------------------------
 ItemBlock = class(Item) {
 	__init__() = {|`Block|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -64,6 +76,9 @@ ItemBlock = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemText
+//------------------------------------------------------------------------------
 ItemText = class(Item) {
 	__init__(text:string) = {|`Text| this.text = text}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -71,6 +86,9 @@ ItemText = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemOperator
+//------------------------------------------------------------------------------
 ItemOperator = class(Item) {
 	__init__(text:string) = {|`Operator| this.text = text}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -84,6 +102,9 @@ ItemOperator = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemBracket
+//------------------------------------------------------------------------------
 ItemBracket = class(Item) {
 	__init__() = {|`Bracket|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -102,6 +123,9 @@ ItemBracket = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemRational
+//------------------------------------------------------------------------------
 ItemRational = class(Item) {
 	__init__() = {|`Rational|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -128,6 +152,9 @@ ItemRational = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// ItemPower
+//------------------------------------------------------------------------------
 ItemPower = class(Item) {
 	__init__() = {|`Power|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
@@ -145,6 +172,9 @@ ItemPower = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// Functions
+//------------------------------------------------------------------------------
 GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
