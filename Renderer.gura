@@ -14,9 +14,10 @@ Extent = struct(x_advance:number, ascent:number, descent:number)
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
 	__init__(type:symbol) = {
-		this.type = type		// `Root, `Block, `Text, `Operator, `Bracket, `Rational
+		// `Root, `Block, `Text, `Operator, `Bracket, `Rational, `Power
+		this.type = type
 		this.text = nil			// valid for `Text and `Operator
-		this.children = []		// valid for `Root and `Block
+		this.children = []		// valid for `Root, `Block and `Rational
 		this.width = nil		// valid for `Block
 		this.widthUnit = nil	// valid for `Block
 		this.align = nil		// valid for `Block
@@ -52,8 +53,12 @@ ItemRoot = class(Item) {
 ItemBlock = class(Item) {
 	__init__() = {|`Block|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
-		width = this.width * GetWidthEm(cr)
 		ext = CalcExtentItems(cr, this.children)
+		if (this.width) {
+			width = this.width * GetWidthEm(cr)
+		} else {
+			width = ext.x_advance
+		}
 		DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
 		DrawBorder(cr, x, y, width, this.border, drawFlag)
 	}
@@ -100,13 +105,13 @@ ItemBracket = class(Item) {
 ItemRational = class(Item) {
 	__init__() = {|`Rational|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		itemNumer = this.children[0]
+		itemDenom = this.children[1]
 		wdEm = GetWidthEm(cr)
 		wdStick = wdEm * .5
 		htMgn = wdEm * .3
 		offsetCenter = GetOffsetCenter(cr)
 		yCenter = y - offsetCenter
-		itemNumer = this.children[0]
-		itemDenom = this.children[1]
 		extNumer = itemNumer.CalcExtent(cr)
 		extDenom = itemDenom.CalcExtent(cr)
 		width = max(extNumer.x_advance, extDenom.x_advance) + wdStick * 2
@@ -117,7 +122,26 @@ ItemRational = class(Item) {
 		cr.move_to(x, yCenter)
 		cr.rel_line_to(width, 0)
 		cr.stroke()
-		Extent(width, 0, 0)
+		Extent(width,
+			   extNumer.ascent + extNumer.descent + htMgn * 2 + extDenom.ascent,
+			   extDenom.descent)
+	}
+}
+
+ItemPower = class(Item) {
+	__init__() = {|`Power|}
+	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
+		itemBase = this.children[0]
+		itemPower = this.children[1]
+		x0 = x
+		extBase = itemBase.Draw(cr, x, y, drawFlag)
+		x += extBase.x_advance
+		cr.save {
+			cr.set_font_size(20)
+			extPower = itemPower.Draw(cr, x, y - extBase.ascent * .8, drawFlag)
+		}
+		x += extPower.x_advance
+		Extent(x - x0, 0, 0)
 	}
 }
 
@@ -132,8 +156,8 @@ GetOffsetCenter(cr:cairo.context) = {
 DrawBorder(cr:cairo.context, x:number, y:number, width:number,
 		   border:symbol:nil, drawFlag:boolean => true) = {
 	fontExt = cr.font_extents()
-	ascent = fontExt.ascent * 1.1
-	descent = fontExt.descent + fontExt.ascent * .1
+	ascent = fontExt.ascent * 1.2
+	descent = fontExt.ascent * .2
 	if (border && drawFlag) {
 		cr.rectangle(x, y - ascent, width, ascent + descent)
 		cr.set_line_width(borderThicknessDict[border])
@@ -152,7 +176,7 @@ DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => 
 }
 
 DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
-	text = if (text == '*') {'\u00d7'} elsif (text == '/') {'\u00f7'} else {text}
+	text = if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
 	textExt = cr.text_extents(text)
 	offsetCenter = GetOffsetCenter(cr)
 	ascent = offsetCenter + textExt.height / 2
@@ -185,7 +209,7 @@ CalcExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 AddChildItem(itemStack[]:Item, item:Item):void = {
 	itemParent = itemStack.last()
 	itemParent.AddChild(item)
-	if (itemParent.type == `Rational && itemParent.children.len() >= 2) {
+	if (itemParent.type in [`Rational, `Power] && itemParent.children.len() >= 2) {
 		itemStack.erase(-1)
 	}
 }
@@ -229,7 +253,7 @@ Parse(content:string) = {
 					}
 					itemStack.erase(-1)
 					text = ''
-				} elsif (ch == '%') {
+				} elsif (ch == '/') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
 						AddChildItem(itemStack, ItemText(text))
@@ -243,7 +267,21 @@ Parse(content:string) = {
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
-				} elsif (ch in ['+', '-', '*', '/', '^', '=', '<', '>']) {
+				} elsif (ch == '^') {
+					itemParent = itemStack.last()
+					if (!text.isempty()) {
+						AddChildItem(itemStack, ItemText(text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemLast = itemParent.GetLastChild()) {
+						itemParent.EraseLastChild()
+						item = ItemPower()
+						AddChildItem(itemStack, item)
+						item.AddChild(itemLast)
+						itemStack.add(item)
+					}
+				} elsif (ch in ['+', '-', '*', '%', '=', '<', '>']) {
 					if (!text.isempty()) {
 						AddChildItem(itemStack, ItemText(text))
 						text = ''
@@ -308,6 +346,42 @@ Parse(content:string) = {
 
 Render(cr:cairo.context, x:number, y:number, content:string) = {
 	Parse(content).Draw(cr, x, y)
+}
+
+DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
+	xOff = 0
+	str.each {|ch|
+		textExt = cr.text_extents(ch)
+		cr.rectangle(x + xOff + textExt.x_bearing, y + textExt.y_bearing,
+					 textExt.width, textExt.height)
+		xOff += textExt.x_advance
+	}
+	cr.set_source_rgba(0.8, 0.8, 0.8, 0.7)
+	cr.fill()
+	
+	cr.move_to(x, y)
+	cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+	cr.show_text(str)
+
+	textExt = cr.text_extents(str)
+	fontExt = cr.font_extents()
+	scope {
+		cr.move_to(x, y), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(1.0, 0.2, 0.2, 1.0)
+		cr.stroke()
+	}
+	scope {
+		//cr.move_to(x, y + textExt.y_bearing), cr.rel_line_to(textExt.x_advance, 0)
+		cr.move_to(x, y -  fontExt.ascent), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(0.2, 1.0, 0.2, 1.0)
+		cr.stroke()
+	}
+	scope {
+		//cr.move_to(x, y + textExt.y_bearing + textExt.height), cr.rel_line_to(textExt.x_advance, 0)
+		cr.move_to(x, y + fontExt.descent), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(0.2, 0.2, 1.0, 1.0)
+		cr.stroke()
+	}
 }
 
 if (__name__ == '__main__') {
