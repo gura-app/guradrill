@@ -28,6 +28,8 @@ PanelMain = class(wx.Panel) {
 			//fontFamilyName = 'Geneva'
 			cr.select_font_face(fontFamilyName, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 			cr.set_font_size(30.0)
+			Renderer.Render(cr, 10, 100, '{3 / 5}[border] / 10')
+			/*
 			Renderer.Render(cr, 10, 100, '10x + 30 =')
 			Renderer.Render(cr, 10, 150, '(10 + 30) * 5 % 2 - 7 =')
 			Renderer.Render(cr, 10, 200, '{10}[3em] =')
@@ -37,6 +39,7 @@ PanelMain = class(wx.Panel) {
 			Renderer.Render(cr, 10, 500, '({3 / 5} / {1 / 3 + 2 * 4})')
 			Renderer.Render(cr, 400, 100, '3 ^ 4 + 2 ^ {3x + 2}')
 			Renderer.Render(cr, 400, 150, '3x^2 + 4x + 5')
+			*/
 			//Renderer.Render(cr, 10, 350, '5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 			// [1000]{5c}+[123]{5c}=[]{5b}
 		}

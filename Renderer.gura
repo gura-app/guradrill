@@ -72,7 +72,11 @@ ItemBlock = class(Item) {
 			width = ext.x_advance
 		}
 		DrawItems(cr, x + (width - ext.x_advance) / 2, y, this.children, drawFlag)
-		DrawBorder(cr, x, y, width, this.border, drawFlag)
+		if (this.border && drawFlag) {
+			DrawBorder(cr, x, y, width, ext.ascent, ext.descent, this.border)
+		} else {
+			Extent(width, ext.ascent, ext.descent)
+		}
 	}
 }
 
@@ -133,7 +137,7 @@ ItemRational = class(Item) {
 		itemDenom = this.children[1]
 		wdEm = GetWidthEm(cr)
 		wdStick = wdEm * .5
-		htMgn = wdEm * .3
+		htMgn = wdEm * .2
 		offsetCenter = GetOffsetCenter(cr)
 		yCenter = y - offsetCenter
 		extNumer = itemNumer.CalcExtent(cr)
@@ -145,10 +149,11 @@ ItemRational = class(Item) {
 					   yCenter + htMgn + extDenom.ascent, drawFlag)
 		cr.move_to(x, yCenter)
 		cr.rel_line_to(width, 0)
+		cr.set_line_width(.5)
 		cr.stroke()
 		Extent(width,
-			   extNumer.ascent + extNumer.descent + htMgn * 2 + extDenom.ascent,
-			   extDenom.descent)
+			   extNumer.ascent + extNumer.descent + htMgn + extDenom.ascent - offsetCenter,
+			   extDenom.descent + offsetCenter + htMgn)
 	}
 }
 
@@ -184,15 +189,10 @@ GetOffsetCenter(cr:cairo.context) = {
 }
 
 DrawBorder(cr:cairo.context, x:number, y:number, width:number,
-		   border:symbol:nil, drawFlag:boolean => true) = {
-	fontExt = cr.font_extents()
-	ascent = fontExt.ascent * 1.2
-	descent = fontExt.ascent * .2
-	if (border && drawFlag) {
-		cr.rectangle(x, y - ascent, width, ascent + descent)
-		cr.set_line_width(borderThicknessDict[border])
-		cr.stroke()
-	}
+		   ascent:number, descent:number, border:symbol) = {
+	cr.rectangle(x, y - ascent, width, ascent + descent)
+	cr.set_line_width(borderThicknessDict[border])
+	cr.stroke()
 	Extent(width, ascent, descent)
 }
 
