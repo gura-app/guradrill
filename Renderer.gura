@@ -9,7 +9,7 @@ borderThicknessDict = %{
 	`thick => 1
 }
 
-Extent = struct(x_advance:number, height:number)
+Extent = struct(x_advance:number, ascent:number, descent:number)
 
 Item = class {
 	public {type, text, children, width, widthUnit, align, border}
@@ -75,7 +75,7 @@ ItemOperator = class(Item) {
 		ext = DrawSymbol(cr, x, y, this.text, drawFlag)
 		x += ext.x_advance
 		x += widthEm * .4
-		Extent(x - x0, 0)
+		Extent(x - x0, ext.ascent, ext.descent)
 	}
 }
 
@@ -84,26 +84,40 @@ ItemBracket = class(Item) {
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
 		widthEm = GetWidthEm(cr)
-		ext = DrawSymbol(cr, x, y, '(', drawFlag)
-		x += ext.x_advance
-		ext = DrawItems(cr, x, y, this.children, drawFlag)
-		x += ext.x_advance
+		extParenL = DrawSymbol(cr, x, y, '(', drawFlag)
+		x += extParenL.x_advance
+		extBody = DrawItems(cr, x, y, this.children, drawFlag)
+		x += extBody.x_advance
 		x += widthEm * .15
-		ext = DrawSymbol(cr, x, y, ')', drawFlag)
-		x += ext.x_advance
-		Extent(x - x0, 0)
+		extParenR = DrawSymbol(cr, x, y, ')', drawFlag)
+		x += extParenR.x_advance
+		Extent(x - x0,
+			   max(extParenL.ascent, extBody.ascent, extParenR.ascent),
+			   max(extParenL.descent, extBody.descent, extParenR.descent))
 	}
 }
 
 ItemRational = class(Item) {
 	__init__() = {|`Rational|}
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
-		extNumer = this.children[0].Draw(cr, x, y - 10, drawFlag)
-		extDenom = this.children[1].Draw(cr, x, y + 10, drawFlag)
-		cr.move_to(x, y)
-		cr.rel_line_to(30, 0)
+		wdEm = GetWidthEm(cr)
+		wdStick = wdEm * .5
+		htMgn = wdEm * .3
+		offsetCenter = GetOffsetCenter(cr)
+		yCenter = y - offsetCenter
+		itemNumer = this.children[0]
+		itemDenom = this.children[1]
+		extNumer = itemNumer.CalcExtent(cr)
+		extDenom = itemDenom.CalcExtent(cr)
+		width = max(extNumer.x_advance, extDenom.x_advance) + wdStick * 2
+		itemNumer.Draw(cr, x + (width - extNumer.x_advance) / 2,
+					   yCenter - htMgn - extNumer.descent, drawFlag)
+		itemDenom.Draw(cr, x + (width - extDenom.x_advance) / 2,
+					   yCenter + htMgn + extDenom.ascent, drawFlag)
+		cr.move_to(x, yCenter)
+		cr.rel_line_to(width, 0)
 		cr.stroke()
-		extNumer
+		Extent(width, 0, 0)
 	}
 }
 
@@ -111,15 +125,21 @@ GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
 
+GetOffsetCenter(cr:cairo.context) = {
+	-cr.text_extents('0').y_bearing / 2
+}
+
 DrawBorder(cr:cairo.context, x:number, y:number, width:number,
 		   border:symbol:nil, drawFlag:boolean => true) = {
 	fontExt = cr.font_extents()
+	ascent = fontExt.ascent * 1.1
+	descent = fontExt.descent + fontExt.ascent * .1
 	if (border && drawFlag) {
-		cr.rectangle(x, y - fontExt.ascent * (1 + .2), width, fontExt.ascent * (1 + .2 + .2))
+		cr.rectangle(x, y - ascent, width, ascent + descent)
 		cr.set_line_width(borderThicknessDict[border])
 		cr.stroke()
 	}
-	Extent(width, 0)
+	Extent(width, ascent, descent)
 }
 
 DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
@@ -128,28 +148,34 @@ DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => 
 		cr.move_to(x, y)
 		cr.show_text(text)
 	}
-	Extent(textExt.x_advance, 0)
+	Extent(textExt.x_advance, -textExt.y_bearing, textExt.height + textExt.y_bearing)
 }
 
 DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
 	text = if (text == '*') {'\u00d7'} elsif (text == '/') {'\u00f7'} else {text}
 	textExt = cr.text_extents(text)
+	offsetCenter = GetOffsetCenter(cr)
+	ascent = offsetCenter + textExt.height / 2
+	descent = max(0, textExt.height - ascent)
 	if (drawFlag) {
 		fontExt = cr.font_extents()
-		cr.move_to(x, y - textExt.y_bearing - (fontExt.ascent + textExt.height) / 2)
+		cr.move_to(x, y - offsetCenter - textExt.y_bearing - textExt.height / 2)
 		cr.show_text(text)
 	}
-	Extent(textExt.x_advance, 0)
+	Extent(textExt.x_advance, ascent, descent)
 }
 
 DrawItems(cr:cairo.context, x:number, y:number,
 		  items[]:Parser.Item, drawFlag:boolean => true) = {
 	x0 = x
+	ascent = descent = 0
 	items.each {|item|
 		ext = item.Draw(cr, x, y, drawFlag)
+		if (ascent < ext.ascent) {ascent = ext.ascent}
+		if (descent < ext.descent) {descent = ext.descent}
 		x += ext.x_advance
 	}
-	Extent(x - x0, 0)
+	Extent(x - x0, ascent, descent)
 }
 
 CalcExtentItems(cr:cairo.context, items[]:Parser.Item) = {

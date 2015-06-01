@@ -23,14 +23,29 @@ DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 	cr.set_source_rgba(0.8, 0.8, 0.8, 0.7)
 	cr.fill()
 	
-	cr.set_source_rgba(1.0, 0.8, 0.8, 1.0)
-	fontExt = cr.font_extents()
-	cr.rectangle(x, y, 100, -fontExt.ascent)
-	cr.fill()
-	
 	cr.move_to(x, y)
 	cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
 	cr.show_text(str)
+
+	textExt = cr.text_extents(str)
+	fontExt = cr.font_extents()
+	scope {
+		cr.move_to(x, y), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(1.0, 0.2, 0.2, 1.0)
+		cr.stroke()
+	}
+	scope {
+		//cr.move_to(x, y + textExt.y_bearing), cr.rel_line_to(textExt.x_advance, 0)
+		cr.move_to(x, y -  fontExt.ascent), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(0.2, 1.0, 0.2, 1.0)
+		cr.stroke()
+	}
+	scope {
+		//cr.move_to(x, y + textExt.y_bearing + textExt.height), cr.rel_line_to(textExt.x_advance, 0)
+		cr.move_to(x, y + fontExt.descent), cr.rel_line_to(textExt.x_advance, 0)
+		cr.set_source_rgba(0.2, 0.2, 1.0, 1.0)
+		cr.stroke()
+	}
 }
 
 fontFamilyName = dict {
@@ -52,10 +67,10 @@ PanelMain = class(wx.Panel) {
 			Renderer.Render(cr, 10, 200, '{10}[3em] =')
 			Renderer.Render(cr, 10, 250, '{10}[3em] + {20}[3em] = {}[3em,border]')
 			Renderer.Render(cr, 10, 300, '{10}[3em,border] + {}[3em,border] = {}[3em,border]')
-			Renderer.Render(cr, 10, 350, '3 % 5 + 2 % 3 =')
+			Renderer.Render(cr, 10, 400, '3 % 500 + 2 % 3 - {}[3em,border] % 10 =')
 			//Renderer.Render(cr, 10, 350, '5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 			//DrawTextWithBBox(cr, 10, 100, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz')
+			//DrawTextWithBBox(cr, 10, 180, 'abcdefghijklmnopqrstuvwxyz 0123456789')
 			//DrawTextWithBBox(cr, 10, 220, '0123456789')
 			//DrawTextWithBBox(cr, 10, 260, '=+-\u00d7\u00f7\u03c0' + chr(0x0080..0x00ff).join())
 			//DrawTextWithBBox(cr, 10, 300, '3.234 + 11234 \u00f7 (432 + 123) = ')
