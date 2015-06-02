@@ -3,12 +3,6 @@ import(re)
 import(cairo)
 import(utils)
 
-borderThicknessDict = %{
-	`thin => .1
-	`medium => .5
-	`thick => 1
-}
-
 //------------------------------------------------------------------------------
 // Extent
 //------------------------------------------------------------------------------
@@ -161,7 +155,7 @@ ItemRational = class(Item) {
 					   yCenter + htMgn + extDenom.ascent, drawFlag)
 		cr.move_to(x, yCenter)
 		cr.rel_line_to(width, 0)
-		cr.set_line_width(.5)
+		SetLineWidth(cr, `medium)
 		cr.stroke()
 		Extent(width,
 			   extNumer.ascent + extNumer.descent + htMgn + extDenom.ascent - offsetCenter,
@@ -192,6 +186,17 @@ ItemPower = class(Item) {
 //------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
+SetLineWidth(cr:cairo.context, border:symbol) = {
+	width = if (border == `thin) {
+		.1
+	} elsif (border == `medium) {
+		.5
+	} else {
+		1
+	}
+	cr.set_line_width(width)
+}
+
 GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
 }
@@ -203,7 +208,7 @@ GetOffsetCenter(cr:cairo.context) = {
 DrawBorder(cr:cairo.context, x:number, y:number, width:number,
 		   ascent:number, descent:number, border:symbol) = {
 	cr.rectangle(x, y - ascent, width, ascent + descent)
-	cr.set_line_width(borderThicknessDict[border])
+	SetLineWidth(cr, border)
 	cr.stroke()
 	Extent(width, ascent, descent)
 }
