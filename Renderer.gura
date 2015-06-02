@@ -159,18 +159,28 @@ ItemBlock = class(Item) {
 		} else {
 			width = ext.x_advance
 		}
-		offsetContent = if (this.align == `left) {
+		xOffset = 0, yOffset = 0
+		if (this.height) {
+			height = canvas.CalcLength(this.height, this.heightUnit)
+			offsetCenter = canvas.GetOffsetCenter()
+			ascent = height / 2 + offsetCenter
+			descent = height / 2 - offsetCenter
+		} else {
+			ascent = ext.ascent
+			descent = ext.descent
+		}
+		xOffset = if (this.align == `left) {
 			0
 		} elsif (this.align == `right) {
 			width - ext.x_advance
 		} else {
 			(width - ext.x_advance) / 2
 		}
-		canvas.DrawItems(x + offsetContent, y, this.children, drawFlag)
+		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
 		if (this.border && drawFlag) {
-			canvas.DrawBorder(x, y, width, ext.ascent, ext.descent, this.border)
+			canvas.DrawBorder(x, y, width, ascent, descent, this.border)
 		} else {
-			Extent(width, ext.ascent, ext.descent)
+			Extent(width, ascent, descent)
 		}
 	}
 	Print(indentLevel:number => 0):void = {
