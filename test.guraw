@@ -12,25 +12,13 @@ App = class(wx.App) {
 	}
 }
 
-fontFamilyName = dict {
-	`mswin => 'HGMaruGothicMPRO'
-	`linux => 'VL Gothic'
-	`darwin => 'Hiragino Maru Gothic Pro'
-}[sys.platform]
-
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
 		this.img = image(`rgba, 800, 600)
 		this.img.cairo {|cr|
 			canvas = Renderer.Canvas(cr)
-			//fontFamilyName = 'Monaco'
-			fontFamilyName = 'Helvetica'
-			//fontFamilyName = 'Geneva'
-			canvas.cr.select_font_face(fontFamilyName,
-									   cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-			canvas.cr.set_font_size(30.0)
-			//Renderer.Render(cr, 10, 100, '{3 / 5}[border] / 10')
+			//canvas.Render(10, 100, '{3 / 5}[border] / 10')
 			canvas.Render(10, 100, '10x + 30 =')
 			canvas.Render(10, 150, '(10 + 30) * 5 % 2 - 7 =')
 			canvas.Render(10, 200,

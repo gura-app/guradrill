@@ -14,6 +14,12 @@ Extent = struct(x_advance:number, ascent:number, descent:number)
 Canvas = class {
 	__init__(cr:cairo.context) = {
 		this.cr:public = cr
+		//fontFamilyName = 'Monaco'
+		fontFamilyName = 'Helvetica'
+		//fontFamilyName = 'Geneva'
+		this.cr.select_font_face(fontFamilyName,
+								   cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+		this.cr.set_font_size(30.0)
 	}
 	SetLineWidth(border:symbol) = {
 		width = if (border == `thin) {
