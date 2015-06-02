@@ -153,9 +153,9 @@ ItemRational = class(Item) {
 	Draw(cr:cairo.context, x:number, y:number, drawFlag:boolean => true) = {
 		itemNumer = this.children[0]
 		itemDenom = this.children[1]
-		wdEm = GetWidthEm(cr)
-		wdStick = wdEm * .5
-		htMgn = wdEm * .2
+		widthEm = GetWidthEm(cr)
+		wdStick = widthEm * .5
+		htMgn = widthEm * .2
 		offsetCenter = GetOffsetCenter(cr)
 		yCenter = y - offsetCenter
 		extNumer = itemNumer.CalcExtent(cr)
@@ -219,6 +219,14 @@ SetLineWidth(cr:cairo.context, border:symbol) = {
 
 GetWidthEm(cr:cairo.context) = {
 	cr.text_extents('m').width
+}
+
+CalcLength(cr:cairo.context, n:number, unit:string) = {
+	if (unit == 'em') {
+		n * GetWidthEm(cr)
+	} else {
+		n
+	}
 }
 
 GetOffsetCenter(cr:cairo.context) = {
