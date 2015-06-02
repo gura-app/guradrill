@@ -20,6 +20,12 @@ Canvas = class {
 		this.cr.select_font_face(fontFamilyName,
 								   cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		this.cr.set_font_size(30.0)
+		this.x = this.y = 0
+		this.xTop = 0
+	}
+	SetPosition(x:number, y:number) = {
+		this.x = x, this.y = y
+		this.xTop = x
 	}
 	SetLineWidth(border:symbol) = {
 		width = if (border == `thin) {
@@ -88,7 +94,15 @@ Canvas = class {
 	}
 	CalcExtentItem(item) = this.DrawItem(0, 0, item, false)
 	CalcExtentItems(items[]) = this.DrawItems(0, 0, items, false)
-	Render(x:number, y:number, content:string) = this.DrawItem(x, y, Parse(content))
+	Render(content:string) = {
+		ext = this.DrawItem(this.x, this.y, Parse(content))
+		this.x += ext.x_advance
+	}
+	Newline(mag:number => 1) = {
+		fontExt = this.cr.font_extents()
+		this.x = this.xTop
+		this.y += fontExt.height * mag
+	}
 }
 
 //------------------------------------------------------------------------------
