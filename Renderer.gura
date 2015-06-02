@@ -103,6 +103,29 @@ Canvas = class {
 		this.x = this.xTop
 		this.y += fontExt.height * mag
 	}
+	FoldHorz(items[], width:number) {block} = {
+		itemsFold = []
+		wdAccum = 0
+		descentPrev = 0
+		ascent = descent = 0
+		y = this.y
+		items.each {|item|
+			ext = this.CalcExtentItem(item)
+			if (wdAccum + x_advance > width) {
+				y += descentPrev + ascent
+				block(this, itemsFold, y)
+				itemsFold.clear()
+				wdAccum = x_advance
+				descentPrev = descent
+				ascent = descent = 0
+			}
+			itemsAccum.add(item)
+			if (ascent < ext.ascent) {ascent = ext.ascent}
+			if (descent < ext.descent) {descent = ext.descent}
+		}
+		y += descentPrev + ascent
+		block(this, itemsFold, y)
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -326,6 +349,9 @@ ItemPower = class(Item) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// Functions
+//------------------------------------------------------------------------------
 ConvOperatorSymbol(text:string) = {
 	if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
 }
