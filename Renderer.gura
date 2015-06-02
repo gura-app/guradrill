@@ -59,7 +59,7 @@ ItemBlock = class(Item) {
 			ext = CalcExtentItems(cr, this.children)
 		}
 		if (this.width) {
-			width = this.width * GetWidthEm(cr)
+			width = CalcLength(cr, this.width, this.widthUnit)
 		} else {
 			width = ext.x_advance
 		}
@@ -250,10 +250,6 @@ DrawText(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => 
 	Extent(textExt.x_advance, -textExt.y_bearing, textExt.height + textExt.y_bearing)
 }
 
-ConvOperatorSymbol(text:string) = {
-	if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
-}
-
 DrawSymbol(cr:cairo.context, x:number, y:number, text:string, drawFlag:boolean => true) = {
 	text = ConvOperatorSymbol(text)
 	textExt = cr.text_extents(text)
@@ -283,6 +279,10 @@ DrawItems(cr:cairo.context, x:number, y:number,
 
 CalcExtentItems(cr:cairo.context, items[]:Parser.Item) = {
 	DrawItems(cr, 0, 0, items, false)
+}
+
+ConvOperatorSymbol(text:string) = {
+	if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
 }
 
 AddChildItem(itemStack[]:Item, item:Item):void = {
