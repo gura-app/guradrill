@@ -24,13 +24,13 @@ PanelMain = class(wx.Panel) {
 			canvas.Newline()
 			canvas.Render('(10 + 30) * 5 % 2 - 7 =')
 			canvas.Newline()
-			canvas.Render('{10}[width=3em,left,border] + ' \
-						  '{10}[width=3em,center,border] + ' \
-						  '{10}[width=3em,right,border]')
+			canvas.Render('{10}[width=3em,align=left,border] + ' \
+						  '{10}[width=3em,align=center,border] + ' \
+						  '{10}[width=3em,align=right,border]')
 			canvas.Newline(2)
-			canvas.Render('{10}[width=3em] + {20}[width=3em] = {}[width=3em,height=2em,border]')
+			canvas.Render('{10}[width=3em,align=center] + {20}[width=3em,align=center] = {}[width=3em,height=2em,border]')
 			canvas.Newline(2)
-			canvas.Render('{10}[width=3em,border] + {}[width=3em,border] = {}[width=3em,border]')
+			canvas.Render('{10}[width=3em,align=center,border] + {}[width=3em,border] = {}[width=3em,border]')
 			canvas.Newline(2)
 			canvas.Render('3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =')
 			canvas.Newline(3)

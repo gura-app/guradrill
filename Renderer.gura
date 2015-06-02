@@ -109,7 +109,12 @@ Canvas = class {
 // Item
 //------------------------------------------------------------------------------
 Item = class {
-	public {type, text, children, width, widthUnit, height, heightUnit, align, border}
+	public {
+		type, text, children
+		width, widthUnit
+		height, heightUnit
+		align, valign, border
+	}
 	__init__(type:symbol) = {
 		// `Root, `Block, `Text, `Operator, `Bracket, `Rational, `Power
 		this.type = type
@@ -120,6 +125,7 @@ Item = class {
 		this.height = nil		// valid for `Block
 		this.heightUnit = nil	// valid for `Block
 		this.align = nil		// valid for `Block
+		this.valign = nil		// valid for `Block
 		this.border = nil		// valid for `Block
 	}
 	AddChild(item:Item) = this.children.add(item)
@@ -171,10 +177,21 @@ ItemBlock = class(Item) {
 		}
 		xOffset = if (this.align == `left) {
 			0
+		} elsif (this.align == `center) {
+			(width - ext.x_advance) / 2
 		} elsif (this.align == `right) {
 			width - ext.x_advance
 		} else {
-			(width - ext.x_advance) / 2
+			0
+		}
+		yOffset = if (this.align == `top) {
+			0
+		} elsif (this.align == `medium) {
+			height / 2 + (ascent - descent) / 2
+		} elsif (this.align == `botom) {
+			height - ext.descent
+		} else {
+			0
 		}
 		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
 		if (this.border && drawFlag) {
@@ -422,21 +439,19 @@ Parse(content:string) = {
 						itemParent.height = m[1].tonumber()
 						itemParent.heightUnit = m[2]
 					} elsif (m = field.match(r'border=([a-z]+)')) {
-						if (m[1] == 'thin') {
-							itemParent.border = `thin
-						} elsif (m[1] == 'medium') {
-							itemParent.border = `medium
-						} elsif (m[1] == 'thick') {
-							itemParent.border = `thick
+						if (m[1] in ['thin', 'medium', 'thick']) {
+							itemParent.border = m[1].tosymbol()
 						}
 					} elsif (field == 'border') {
 						itemParent.border = `medium
-					} elsif (field == 'center') {
-						itemParent.align = `center
-					} elsif (field == 'left') {
-						itemParent.align = `left
-					} elsif (field == 'right') {
-						itemParent.align = `right
+					} elsif (m = field.match(r'align=([a-z]+)')) {
+						if (m[1] in ['left', 'center', 'right']) {
+							itemParent.align = m[1].tosymbol()
+						}
+					} elsif (m = field.match(r'valign=([a-z]+)')) {
+						if (m[1] in ['top', 'middle', 'bottom']) {
+							itemParent.valign = m[1].tosymbol()
+						}
 					} else {
 						// invalid attribute
 					}
