@@ -41,7 +41,6 @@ PanelMain = class(wx.Panel) {
 			canvas.Render('3x^2 + 4x + 5 + {}[width=3em,height=2em,border]')
 			canvas.Newline()
 			//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
-			// [1000]{5c}+[123]{5c}=[]{5b}
 		}
 		this.bmp = wx.Bitmap(this.img)
 	}
