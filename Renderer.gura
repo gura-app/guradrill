@@ -111,20 +111,21 @@ Canvas = class {
 		y = this.y
 		items.each {|item|
 			ext = this.CalcExtentItem(item)
-			if (wdAccum + x_advance > width) {
+			if (wdAccum + ext.x_advance > width) {
 				y += descentPrev + ascent
-				block(this, itemsFold, y)
+				block(itemsFold, y)
 				itemsFold.clear()
-				wdAccum = x_advance
+				wdAccum = 0
 				descentPrev = descent
 				ascent = descent = 0
 			}
-			itemsAccum.add(item)
+			wdAccum += ext.x_advance
+			itemsFold.add(item)
 			if (ascent < ext.ascent) {ascent = ext.ascent}
 			if (descent < ext.descent) {descent = ext.descent}
 		}
 		y += descentPrev + ascent
-		block(this, itemsFold, y)
+		block(itemsFold, y)
 	}
 }
 
@@ -216,6 +217,15 @@ ItemBlock = class(Item) {
 		} else {
 			0
 		}
+		/*
+		if (this.width) {
+			canvas.FoldHorz(this.children, width) {|itemsFold, y|
+				canvas.DrawItems(x + xOffset, y + yOffset, itemsFold)
+			}
+		} else {
+			canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
+		}
+		*/
 		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
 		if (this.border && drawFlag) {
 			canvas.DrawBorder(x, y, width, ascent, descent, this.border)
@@ -454,37 +464,37 @@ Parse(content:string) = {
 					stat = `Normal
 				}
 			} elsif (stat == `BlockAttr) {
-			if (ch == ']') {
-				itemParent = itemStack.last()
-				text.split(',') {|field|
-					field = field.strip()
-					if (m = field.match(r'width=([\d\.]+)([a-z]+)')) {
-						itemParent.width = m[1].tonumber()
-						itemParent.widthUnit = m[2]
-					} elsif (m = field.match(r'height=([\d\.]+)([a-z]+)')) {
-						itemParent.height = m[1].tonumber()
-						itemParent.heightUnit = m[2]
-					} elsif (m = field.match(r'border=([a-z]+)')) {
-						if (m[1] in ['thin', 'medium', 'thick']) {
-							itemParent.border = m[1].tosymbol()
+				if (ch == ']') {
+					itemParent = itemStack.last()
+					text.split(',') {|field|
+						field = field.strip()
+						if (m = field.match(r'width=([\d\.]+)([a-z]+)')) {
+							itemParent.width = m[1].tonumber()
+							itemParent.widthUnit = m[2]
+						} elsif (m = field.match(r'height=([\d\.]+)([a-z]+)')) {
+							itemParent.height = m[1].tonumber()
+							itemParent.heightUnit = m[2]
+						} elsif (m = field.match(r'border=([a-z]+)')) {
+							if (m[1] in ['thin', 'medium', 'thick']) {
+								itemParent.border = m[1].tosymbol()
+							}
+						} elsif (field == 'border') {
+							itemParent.border = `medium
+						} elsif (m = field.match(r'align=([a-z]+)')) {
+							if (m[1] in ['left', 'center', 'right']) {
+								itemParent.align = m[1].tosymbol()
+							}
+						} elsif (m = field.match(r'valign=([a-z]+)')) {
+							if (m[1] in ['top', 'middle', 'bottom']) {
+								itemParent.valign = m[1].tosymbol()
+							}
+						} else {
+							// invalid attribute
 						}
-					} elsif (field == 'border') {
-						itemParent.border = `medium
-					} elsif (m = field.match(r'align=([a-z]+)')) {
-						if (m[1] in ['left', 'center', 'right']) {
-							itemParent.align = m[1].tosymbol()
-						}
-					} elsif (m = field.match(r'valign=([a-z]+)')) {
-						if (m[1] in ['top', 'middle', 'bottom']) {
-							itemParent.valign = m[1].tosymbol()
-						}
-					} else {
-						// invalid attribute
 					}
-				}
-				itemStack.erase(-1)
-				text = ''
-				stat = `Normal
+					itemStack.erase(-1)
+					text = ''
+					stat = `Normal
 				} else {
 					text += ch
 				}
