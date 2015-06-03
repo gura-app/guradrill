@@ -128,8 +128,9 @@ Canvas = class {
 // Item
 //------------------------------------------------------------------------------
 Item = class {
-	__init__(type:symbol) = {
+	__init__(type:symbol, itemParent:Item:nil) = {
 		this.type:public = type
+		this.itemParent:public = itemParent
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {}
 }
@@ -138,7 +139,7 @@ Item = class {
 // ItemContainer -> Item
 //------------------------------------------------------------------------------
 ItemContainer = class(Item) {
-	__init__(type:symbol) = {|type|
+	__init__(type:symbol, itemParent:Item:nil) = {|type, itemParent|
 		this.children:public = []
 	}
 	AddChild(item:Item) = this.children.add(item)
@@ -150,7 +151,7 @@ ItemContainer = class(Item) {
 // ItemRoot -> ItemContainer
 //------------------------------------------------------------------------------
 ItemRoot = class(ItemContainer) {
-	__init__() = {|`Root|}
+	__init__() = {|`Root, nil|}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		canvas.DrawItems(x, y, this.children, drawFlag)
 	}
@@ -164,7 +165,7 @@ ItemRoot = class(ItemContainer) {
 // ItemBox -> ItemContainer
 //------------------------------------------------------------------------------
 ItemBox = class(ItemContainer) {
-	__init__() = {|`Box|
+	__init__(itemParent:Item) = {|`Box, itemParent|
 		this.pack:public		= nil
 		this.width:public		= nil
 		this.widthUnit:public	= nil
@@ -231,14 +232,28 @@ ItemBox = class(ItemContainer) {
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		yOffset = 0
-		canvas.FoldHorz(this.children, this.width) {|itemsFold[]:Item, y_advance:number|
+		if (this.width) {
+			width = canvas.CalcLength(this.width, this.widthUnit)
+		} elsif (this.itemParent.type == `Box) {
+			width = canvas.CalcLength(this.itemParent.width, this.itemParent.widthUnit)
+		} else {
+			// error
+		}
+		if (this.width) {
+			height = canvas.CalcLength(this.height, this.heightUnit)
+		} elsif (this.itemParent.type == `Box) {
+			height = canvas.CalcLength(this.itemParent.height, this.itemParent.heightUnit)
+		} else {
+			// error
+		}
+		canvas.FoldHorz(this.children, width) {|itemsFold[]:Item, y_advance:number|
 			yOffset += y_advance
 			canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
 		}
 		if (this.border && drawFlag) {
-			canvas.DrawBox(x, y, this.width, this.height, this.border)
+			canvas.DrawBox(x, y, width, height, this.border)
 		}
-		Extent(this.width, 0, this.height)
+		Extent(width, 0, height)
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		
@@ -259,7 +274,7 @@ ItemBox = class(ItemContainer) {
 // ItemText -> Item
 //------------------------------------------------------------------------------
 ItemText = class(Item) {
-	__init__(text:string) = {|`Text|
+	__init__(itemParent:Item, text:string) = {|`Text, itemParent|
 		this.text:public = text
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
@@ -274,7 +289,7 @@ ItemText = class(Item) {
 // ItemOperator -> Item
 //------------------------------------------------------------------------------
 ItemOperator = class(Item) {
-	__init__(opSymbol:string) = {|`Operator|
+	__init__(itemParent:Item, opSymbol:string) = {|`Operator, itemParent|
 		this.opSymbol:public = opSymbol
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
@@ -295,7 +310,7 @@ ItemOperator = class(Item) {
 // ItemBracket -> ItemContainer
 //------------------------------------------------------------------------------
 ItemBracket = class(ItemContainer) {
-	__init__() = {|`Bracket|}
+	__init__(itemParent:Item) = {|`Bracket, itemParent|}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
 		widthEm = canvas.GetWidthEm()
@@ -320,7 +335,7 @@ ItemBracket = class(ItemContainer) {
 // ItemRational -> ItemContainer
 //------------------------------------------------------------------------------
 ItemRational = class(ItemContainer) {
-	__init__() = {|`Rational|
+	__init__(itemParent:Item) = {|`Rational, itemParent|
 		// this.children[] stores two items: itemNumer and itemDenom
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
@@ -337,10 +352,12 @@ ItemRational = class(ItemContainer) {
 					   yCenter - htMgn - extNumer.descent, itemNumer, drawFlag)
 		canvas.DrawItem(x + (width - extDenom.x_advance) / 2,
 					   yCenter + htMgn + extDenom.ascent, itemDenom, drawFlag)
-		canvas.cr.move_to(x, yCenter)
-		canvas.cr.rel_line_to(width, 0)
-		canvas.SetLineWidth(`medium)
-		canvas.cr.stroke()
+		if (drawFlag) {
+			canvas.cr.move_to(x, yCenter)
+			canvas.cr.rel_line_to(width, 0)
+			canvas.SetLineWidth(`medium)
+			canvas.cr.stroke()
+		}
 		Extent(width,
 			   extNumer.ascent + extNumer.descent + htMgn + extDenom.ascent - offsetCenter,
 			   extDenom.descent + offsetCenter + htMgn)
@@ -355,7 +372,7 @@ ItemRational = class(ItemContainer) {
 // ItemPower -> ItemContainer
 //------------------------------------------------------------------------------
 ItemPower = class(ItemContainer) {
-	__init__() = {|`Power|
+	__init__(itemParent:Item) = {|`Power, itemParent|
 		// this.children[] stores two items: itemBase and itemPower
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
@@ -365,10 +382,11 @@ ItemPower = class(ItemContainer) {
 		x += extBase.x_advance
 		canvas.cr.save {
 			canvas.cr.set_font_size(20)
-			extPower = canvas.DrawItem(x, y - extBase.ascent * .8, itemPower, drawFlag)
+			yOffset = extBase.ascent * .8
+			extPower = canvas.DrawItem(x, y - yOffset, itemPower, drawFlag)
 		}
 		x += extPower.x_advance
-		Extent(x - x0, 0, 0)
+		Extent(x - x0, max(yOffset + extPower.ascent, extBase.ascent), extBase.descent)
 	}
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:\n', indentLevel * 2, '', this.type)
@@ -399,14 +417,14 @@ Parse(content:string) = {
 	content.each {|ch|
 		utils.pushback {|pb|
 			if (stat == `Normal) {
+				itemParent = itemStack.last()
 				if (ch == '{') {
-					item = ItemBox()
+					item = ItemBox(itemParent)
 					AddChildItem(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == '}') {
-					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -415,13 +433,13 @@ Parse(content:string) = {
 					}
 					stat = `BoxAttrPre
 				} elsif (ch == '(') {
-					item = ItemBracket()
+					item = ItemBracket(itemParent)
 					AddChildItem(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == ')') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -431,42 +449,40 @@ Parse(content:string) = {
 					itemStack.erase(-1)
 					text = ''
 				} elsif (ch == '/') {
-					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
 					if (itemLast = itemParent.GetLastChild()) {
 						itemParent.EraseLastChild()
-						item = ItemRational()
+						item = ItemRational(itemParent)
 						AddChildItem(itemStack, item)
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
 				} elsif (ch == '^') {
-					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
 					if (itemLast = itemParent.GetLastChild()) {
 						itemParent.EraseLastChild()
-						item = ItemPower()
+						item = ItemPower(itemParent)
 						AddChildItem(itemStack, item)
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
 				} elsif (ch in ['+', '-', '*', '%', '=', '<', '>']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
-					AddChildItem(itemStack, ItemOperator(ch))
+					AddChildItem(itemStack, ItemOperator(itemParent, ch))
 				} elsif (ch in [' ', '\t', '\n']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(text))
+						AddChildItem(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
 				} else {
@@ -524,7 +540,10 @@ Parse(content:string) = {
 			}
 		}
 	}
-	!text.isempty() && AddChildItem(itemStack, ItemText(text))
+	if (!text.isempty()) {
+		itemParent = itemStack.last()
+		AddChildItem(itemStack, ItemText(itemParent, text))
+	}
 	itemStack.first()
 }
 

@@ -6,7 +6,7 @@ import(Renderer)
 
 App = class(wx.App) {
 	OnInit() = {
-		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(800, 600))
+		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(1000, 600))
 		frame.Show()
 		true
 	}
@@ -43,21 +43,36 @@ Compose2(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
-		{A}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-		{}[pack,width=80em,height=40em,border]
-	}[pack,width=300em,height=300em,border]
+		{
+			(10 + 30) * 5 % 2 - 7 =
+		}[pack,width=20em,height=4em,border]
+		{
+			(10 + 30) * 5 % 2 - 7 =
+		}[pack,width=20em,height=4em,border]
+		{
+			3 ^ 4 + 2 ^ {3x + 2}
+		}[pack,width=20em,height=4em,border]
+		{
+			3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =
+		}[pack,width=20em,height=4em,border]
+		{
+		}[pack,width=20em,height=4em,border]
+		{
+		}[pack,width=20em,height=4em,border]
+		{
+		}[pack,width=20em,height=4em,border]
+		{
+		}[pack,width=20em,height=4em,border]
+		{
+		}[pack,width=20em,height=4em,border]
+	}[pack,width=40em,height=20em,border]
 	''')
 }
 
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.img = image(`rgba, 800, 600)
+		this.img = image(`rgba, 1000, 600)
 		this.img.cairo {|cr|
 			canvas = Renderer.Canvas(cr)
 			Compose2(canvas)
