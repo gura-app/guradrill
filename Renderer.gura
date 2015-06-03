@@ -66,7 +66,7 @@ Canvas = class {
 		Extent(textExt.x_advance, -textExt.y_bearing, textExt.height + textExt.y_bearing)
 	}
 	DrawSymbol(x:number, y:number, text:string, drawFlag:boolean => true) = {
-		text = ConvOperatorSymbol(text)
+		text = ConvOpSymbol(text)
 		textExt = this.cr.text_extents(text)
 		offsetCenter = this.GetOffsetCenter()
 		ascent = offsetCenter + textExt.height / 2
@@ -136,7 +136,7 @@ Item = class {
 	__init__(type:symbol) = {
 		this.type:public = type
 	}
-	Draw(canvas, x:number, y:number, drawFlag:boolean => true) = {}
+	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {}
 }
 
 //------------------------------------------------------------------------------
@@ -166,17 +166,18 @@ ItemRoot = class(ItemContainer) {
 }
 
 //------------------------------------------------------------------------------
-// ItemBlock -> ItemContainer
+// ItemBox -> ItemContainer
 //------------------------------------------------------------------------------
-ItemBlock = class(ItemContainer) {
-	__init__() = {|`Block|
-		this.width:public = nil
-		this.widthUnit:public = nil
-		this.height:public = nil
-		this.heightUnit:public = nil
-		this.align:public = nil
-		this.valign:public = nil
-		this.border:public = nil
+ItemBox = class(ItemContainer) {
+	__init__() = {|`Box|
+		this.pack:public		= nil
+		this.width:public		= nil
+		this.widthUnit:public	= nil
+		this.height:public		= nil
+		this.heightUnit:public	= nil
+		this.align:public		= nil
+		this.valign:public		= nil
+		this.border:public		= nil
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		if (this.children.isempty()) {
@@ -264,20 +265,20 @@ ItemText = class(Item) {
 // ItemOperator -> Item
 //------------------------------------------------------------------------------
 ItemOperator = class(Item) {
-	__init__(text:string) = {|`Operator|
-		this.text:public = text
+	__init__(opSymbol:string) = {|`Operator|
+		this.opSymbol:public = opSymbol
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
 		widthEm = canvas.GetWidthEm()
 		x += widthEm * .4
-		ext = canvas.DrawSymbol(x, y, this.text, drawFlag)
+		ext = canvas.DrawSymbol(x, y, this.opSymbol, drawFlag)
 		x += ext.x_advance
 		x += widthEm * .4
 		Extent(x - x0, ext.ascent, ext.descent)
 	}
 	Print(indentLevel:number => 0):void = {
-		printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, ConvOperatorSymbol(this.text))
+		printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, ConvOpSymbol(this.opSymbol))
 	}
 }
 
@@ -369,7 +370,7 @@ ItemPower = class(ItemContainer) {
 //------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
-ConvOperatorSymbol(text:string) = {
+ConvOpSymbol(text:string) = {
 	if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
 }
 
@@ -390,7 +391,7 @@ Parse(content:string) = {
 		utils.pushback {|pb|
 			if (stat == `Normal) {
 				if (ch == '{') {
-					item = ItemBlock()
+					item = ItemBox()
 					AddChildItem(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == '}') {
@@ -400,10 +401,10 @@ Parse(content:string) = {
 						itemParent = itemStack.last()
 						text = ''
 					}
-					if (itemParent.type != `Block) {
+					if (itemParent.type != `Box) {
 						raise(error.SyntaxError, 'unbalanced bracket')
 					}
-					stat = `BlockAttrPre
+					stat = `BoxAttrPre
 				} elsif (ch == '(') {
 					item = ItemBracket()
 					AddChildItem(itemStack, item)
@@ -462,15 +463,15 @@ Parse(content:string) = {
 				} else {
 					text += ch
 				}
-			} elsif (stat == `BlockAttrPre) {
+			} elsif (stat == `BoxAttrPre) {
 				if (ch == '[') {
-					stat = `BlockAttr
+					stat = `BoxAttr
 				} else {
 					itemStack.erase(-1)
 					pb.Pushback()
 					stat = `Normal
 				}
-			} elsif (stat == `BlockAttr) {
+			} elsif (stat == `BoxAttr) {
 				if (ch == ']') {
 					itemParent = itemStack.last()
 					text.split(',') {|field|
