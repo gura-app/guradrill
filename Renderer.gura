@@ -133,35 +133,28 @@ Canvas = class {
 // Item
 //------------------------------------------------------------------------------
 Item = class {
-	public {
-		type, text, children
-		width, widthUnit
-		height, heightUnit
-		align, valign, border
-	}
 	__init__(type:symbol) = {
-		// `Root, `Block, `Text, `Operator, `Bracket, `Rational, `Power
-		this.type = type
-		this.text = nil			// valid for `Text and `Operator
-		this.children = []		// valid for `Root, `Block and `Rational
-		this.width = nil		// valid for `Block
-		this.widthUnit = nil	// valid for `Block
-		this.height = nil		// valid for `Block
-		this.heightUnit = nil	// valid for `Block
-		this.align = nil		// valid for `Block
-		this.valign = nil		// valid for `Block
-		this.border = nil		// valid for `Block
+		this.type:public = type
 	}
-	AddChild(item:Item) = this.children.add(item)
-	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
-	EraseLastChild() = this.children.erase(-1)
 	Draw(canvas, x:number, y:number, drawFlag:boolean => true) = {}
 }
 
 //------------------------------------------------------------------------------
-// ItemRoot
+// ItemContainer -> Item
 //------------------------------------------------------------------------------
-ItemRoot = class(Item) {
+ItemContainer = class(Item) {
+	__init__(type:symbol) = {|type|
+		this.children:public = []
+	}
+	AddChild(item:Item) = this.children.add(item)
+	GetLastChild() = if (!this.children.isempty()) {this.children.last()}
+	EraseLastChild() = this.children.erase(-1)
+}
+
+//------------------------------------------------------------------------------
+// ItemRoot -> ItemContainer
+//------------------------------------------------------------------------------
+ItemRoot = class(ItemContainer) {
 	__init__() = {|`Root|}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		canvas.DrawItems(x, y, this.children, drawFlag)
@@ -173,10 +166,18 @@ ItemRoot = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemBlock
+// ItemBlock -> ItemContainer
 //------------------------------------------------------------------------------
-ItemBlock = class(Item) {
-	__init__() = {|`Block|}
+ItemBlock = class(ItemContainer) {
+	__init__() = {|`Block|
+		this.width:public = nil
+		this.widthUnit:public = nil
+		this.height:public = nil
+		this.heightUnit:public = nil
+		this.align:public = nil
+		this.valign:public = nil
+		this.border:public = nil
+	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		if (this.children.isempty()) {
 			fontExt = canvas.cr.font_extents()
@@ -245,10 +246,12 @@ ItemBlock = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemText
+// ItemText -> Item
 //------------------------------------------------------------------------------
 ItemText = class(Item) {
-	__init__(text:string) = {|`Text| this.text = text}
+	__init__(text:string) = {|`Text|
+		this.text:public = text
+	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		canvas.DrawText(x, y, this.text, drawFlag)
 	}
@@ -258,10 +261,12 @@ ItemText = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemOperator
+// ItemOperator -> Item
 //------------------------------------------------------------------------------
 ItemOperator = class(Item) {
-	__init__(text:string) = {|`Operator| this.text = text}
+	__init__(text:string) = {|`Operator|
+		this.text:public = text
+	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
 		widthEm = canvas.GetWidthEm()
@@ -277,9 +282,9 @@ ItemOperator = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemBracket
+// ItemBracket -> ItemContainer
 //------------------------------------------------------------------------------
-ItemBracket = class(Item) {
+ItemBracket = class(ItemContainer) {
 	__init__() = {|`Bracket|}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
@@ -302,13 +307,14 @@ ItemBracket = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemRational
+// ItemRational -> ItemContainer
 //------------------------------------------------------------------------------
-ItemRational = class(Item) {
-	__init__() = {|`Rational|}
+ItemRational = class(ItemContainer) {
+	__init__() = {|`Rational|
+		// this.children[] stores two items: itemNumer and itemDenom
+	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
-		itemNumer = this.children[0]
-		itemDenom = this.children[1]
+		[itemNumer, itemDenom] = this.children[0, 1]
 		widthEm = canvas.GetWidthEm()
 		wdStick = widthEm * .5
 		htMgn = widthEm * .2
@@ -336,13 +342,14 @@ ItemRational = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemPower
+// ItemPower -> ItemContainer
 //------------------------------------------------------------------------------
-ItemPower = class(Item) {
-	__init__() = {|`Power|}
+ItemPower = class(ItemContainer) {
+	__init__() = {|`Power|
+		// this.children[] stores two items: itemBase and itemPower
+	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
-		itemBase = this.children[0]
-		itemPower = this.children[1]
+		[itemBase, itemPower] = this.children[0, 1]
 		x0 = x
 		extBase = canvas.DrawItem(x, y, itemBase, drawFlag)
 		x += extBase.x_advance
