@@ -15,11 +15,12 @@ Canvas = class {
 	__init__(cr:cairo.context) = {
 		this.cr:public = cr
 		//fontFamilyName = 'Monaco'
-		fontFamilyName = 'Helvetica'
+		this.fontFamilyName = 'Helvetica'
 		//fontFamilyName = 'Geneva'
-		this.cr.select_font_face(fontFamilyName,
-								   cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-		this.cr.set_font_size(30.0)
+		this.fontSize = 30.0
+		this.cr.select_font_face(this.fontFamilyName,
+								 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+		this.cr.set_font_size(this.fontSize)
 		this.x = this.y = 0
 		this.xTop = 0
 	}
@@ -36,6 +37,14 @@ Canvas = class {
 			1
 		}
 		this.cr.set_line_width(width)
+	}
+	SetFontSizeByRatio(ratio:number) {block} = {
+		fontSizeSaved = this.fontSize
+		this.fontSize *= ratio
+		this.cr.set_font_size(this.fontSize)
+		block()
+		this.fontSize = fontSizeSaved
+		this.cr.set_font_size(this.fontSize)
 	}
 	GetWidthEm() = {
 		this.cr.text_extents('m').width
@@ -402,9 +411,8 @@ ItemPower = class(ItemContainer) {
 		x0 = x
 		extBase = canvas.DrawItem(x, y, itemBase, drawFlag)
 		x += extBase.x_advance
-		canvas.cr.save {
-			canvas.cr.set_font_size(20)
-			yOffset = extBase.ascent * .8
+		canvas.SetFontSizeByRatio(.8) {
+			yOffset = extBase.ascent * .6
 			extPower = canvas.DrawItem(x, y - yOffset, itemPower, drawFlag)
 		}
 		x += extPower.x_advance

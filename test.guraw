@@ -47,10 +47,10 @@ Compose2(canvas:Renderer.Canvas) = {
 			(10 + 30) * 5 % 2 - 7 =
 		}[pack,width=20em,height=4em,border]
 		{
-			(10 + 30) * 5 % 2 - 7 =
+			3 ^ 4 + 2 ^ {3x + 2}
 		}[pack,width=20em,height=4em,border]
 		{
-			3 ^ 4 + 2 ^ {3x + 2}
+			3 ^ {x ^ 2} 
 		}[pack,width=20em,height=4em,border]
 		{
 			3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =
