@@ -50,12 +50,10 @@ Canvas = class {
 	GetOffsetCenter() = {
 		-this.cr.text_extents('0').y_bearing / 2
 	}
-	DrawBorder(x:number, y:number, width:number,
-			   ascent:number, descent:number, border:symbol) = {
-		this.cr.rectangle(x, y - ascent, width, ascent + descent)
+	DrawBox(x:number, y:number, width:number, height:number, border:symbol) = {
+		this.cr.rectangle(x, y, width, height)
 		this.SetLineWidth(border)
 		this.cr.stroke()
-		Extent(width, ascent, descent)
 	}
 	DrawText(x:number, y:number, text:string, drawFlag:boolean => true) = {
 		textExt = this.cr.text_extents(text)
@@ -108,12 +106,10 @@ Canvas = class {
 		wdAccum = 0
 		descentPrev = 0
 		ascent = descent = 0
-		y = this.y
 		items.each {|item|
 			ext = this.CalcExtentItem(item)
 			if (wdAccum + ext.x_advance > width) {
-				y += descentPrev + ascent
-				block(itemsFold, y)
+				block(itemsFold, descentPrev + ascent)
 				itemsFold.clear()
 				wdAccum = 0
 				descentPrev = descent
@@ -124,8 +120,7 @@ Canvas = class {
 			if (ascent < ext.ascent) {ascent = ext.ascent}
 			if (descent < ext.descent) {descent = ext.descent}
 		}
-		y += descentPrev + ascent
-		block(itemsFold, y)
+		block(itemsFold, descentPrev + ascent)
 	}
 }
 
@@ -230,15 +225,19 @@ ItemBox = class(ItemContainer) {
 		}
 		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
 		if (this.border && drawFlag) {
-			canvas.DrawBorder(x, y, width, ascent, descent, this.border)
-		} else {
-			Extent(width, ascent, descent)
+			canvas.DrawBox(x, y - ascent, width, ascent + descent, this.border)
 		}
+		Extent(width, ascent, descent)
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
-		canvas.FoldHorz(this.children, width) {|itemsFold, y|
-			canvas.DrawItems(x + xOffset, y + yOffset, itemsFold)
+		canvas.FoldHorz(this.children, this.width) {|itemsFold[]:Item, y_advance:number|
+			y += y_advance
+			canvas.DrawItems(x, y, itemsFold)
 		}
+		if (this.border && drawFlag) {
+			canvas.DrawBox(x, y, this.width, this.height, this.border)
+		}
+		Extent(this.width, this.height, 0)
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		

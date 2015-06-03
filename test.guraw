@@ -18,6 +18,8 @@ PanelMain = class(wx.Panel) {
 		this.img = image(`rgba, 800, 600)
 		this.img.cairo {|cr|
 			canvas = Renderer.Canvas(cr)
+			//canvas.SetPosition(10, 10)
+			//canvas.Render('{}[pack,width=200em,height=300em,border]')
 			canvas.SetPosition(10, 60)
 			//canvas.Render('{{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]}[width=10em,height=10em,border]')
 			//canvas.Render('{3 / 5}[border] / 10')
