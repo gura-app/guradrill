@@ -231,7 +231,6 @@ ItemBox = class(ItemContainer) {
 		Extent(width, ascent, descent)
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
-		yOffset = 0
 		if (this.width) {
 			width = canvas.CalcLength(this.width, this.widthUnit)
 		} elsif (this.itemParent.type == `Box) {
@@ -239,13 +238,14 @@ ItemBox = class(ItemContainer) {
 		} else {
 			// error
 		}
-		if (this.width) {
+		if (this.height) {
 			height = canvas.CalcLength(this.height, this.heightUnit)
 		} elsif (this.itemParent.type == `Box) {
 			height = canvas.CalcLength(this.itemParent.height, this.itemParent.heightUnit)
 		} else {
 			// error
 		}
+		yOffset = 0
 		canvas.FoldHorz(this.children, width) {|itemsFold[]:Item, y_advance:number|
 			yOffset += y_advance
 			canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
@@ -256,7 +256,29 @@ ItemBox = class(ItemContainer) {
 		Extent(width, 0, height)
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
-		
+		if (this.width) {
+			width = canvas.CalcLength(this.width, this.widthUnit)
+		} elsif (this.itemParent.type == `Box) {
+			width = canvas.CalcLength(this.itemParent.width, this.itemParent.widthUnit)
+		} else {
+			// error
+		}
+		if (this.height) {
+			height = canvas.CalcLength(this.height, this.heightUnit)
+		} elsif (this.itemParent.type == `Box) {
+			height = canvas.CalcLength(this.itemParent.height, this.itemParent.heightUnit)
+		} else {
+			// error
+		}
+		yOffset = 0
+		descentPrev = 0
+		this.children.each {|item|
+			ext = canvas.CalcExtentItem(item)
+			yOffset += ext.ascent + descentPrev
+			canvas.DrawItem(x, y + yOffset, item, drawFlag)
+			descentPrev = ext.descent
+		}
+		Extent(width, 0, height)
 	}
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:', indentLevel * 2, '', this.type)
