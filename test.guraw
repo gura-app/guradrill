@@ -12,38 +12,55 @@ App = class(wx.App) {
 	}
 }
 
+Compose1(canvas:Renderer.Canvas) = {
+	canvas.SetPosition(10, 60)
+	//canvas.Render('{{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]}[width=10em,height=10em,border]')
+	//canvas.Render('{3 / 5}[border] / 10')
+	canvas.Render('10x + 30 =')
+	canvas.Newline()
+	canvas.Render('(10 + 30) * 5 % 2 - 7 =')
+	canvas.Newline()
+	canvas.Render('{10}[width=3em,align=left,border] + ' \
+				  '{10}[width=3em,align=center,border] + ' \
+				  '{10}[width=3em,align=right,border]')
+	canvas.Newline(2)
+	canvas.Render('{10}[width=3em,align=center] + {20}[width=3em,align=center] = {}[width=3em,height=2em,border]')
+	canvas.Newline(2)
+	canvas.Render('{10}[width=3em,align=center,border] + {}[width=3em,border] = {}[width=3em,border]')
+	canvas.Newline(2)
+	canvas.Render('3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =')
+	canvas.Newline(3)
+	canvas.Render('({3 / 5}[border] / {{1 / 3}[border] + 2 * 4}[border])')
+	canvas.SetPosition(400, 60)
+	canvas.Render('3 ^ 4 + 2 ^ {3x + 2}')
+	canvas.Newline(1.5)
+	canvas.Render('3x^2 + 4x + 5 + {}[width=3em,height=2em,border]')
+	canvas.Newline()
+	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
+}
+
+Compose2(canvas:Renderer.Canvas) = {
+	canvas.SetPosition(20, 20)
+	canvas.Render(R'''
+	{
+		{A}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+		{}[pack,width=80em,height=40em,border]
+	}[pack,width=300em,height=300em,border]
+	''')
+}
+
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
 		this.img = image(`rgba, 800, 600)
 		this.img.cairo {|cr|
 			canvas = Renderer.Canvas(cr)
-			//canvas.SetPosition(10, 10)
-			//canvas.Render('{}[pack,width=200em,height=300em,border]')
-			canvas.SetPosition(10, 60)
-			//canvas.Render('{{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]}[width=10em,height=10em,border]')
-			//canvas.Render('{3 / 5}[border] / 10')
-			canvas.Render('10x + 30 =')
-			canvas.Newline()
-			canvas.Render('(10 + 30) * 5 % 2 - 7 =')
-			canvas.Newline()
-			canvas.Render('{10}[width=3em,align=left,border] + ' \
-						  '{10}[width=3em,align=center,border] + ' \
-						  '{10}[width=3em,align=right,border]')
-			canvas.Newline(2)
-			canvas.Render('{10}[width=3em,align=center] + {20}[width=3em,align=center] = {}[width=3em,height=2em,border]')
-			canvas.Newline(2)
-			canvas.Render('{10}[width=3em,align=center,border] + {}[width=3em,border] = {}[width=3em,border]')
-			canvas.Newline(2)
-			canvas.Render('3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =')
-			canvas.Newline(3)
-			canvas.Render('({3 / 5}[border] / {{1 / 3}[border] + 2 * 4}[border])')
-			canvas.SetPosition(400, 60)
-			canvas.Render('3 ^ 4 + 2 ^ {3x + 2}')
-			canvas.Newline(1.5)
-			canvas.Render('3x^2 + 4x + 5 + {}[width=3em,height=2em,border]')
-			canvas.Newline()
-			//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
+			Compose2(canvas)
 		}
 		this.bmp = wx.Bitmap(this.img)
 	}

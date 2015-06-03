@@ -230,14 +230,15 @@ ItemBox = class(ItemContainer) {
 		Extent(width, ascent, descent)
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
+		yOffset = 0
 		canvas.FoldHorz(this.children, this.width) {|itemsFold[]:Item, y_advance:number|
-			y += y_advance
-			canvas.DrawItems(x, y, itemsFold)
+			yOffset += y_advance
+			canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
 		}
 		if (this.border && drawFlag) {
 			canvas.DrawBox(x, y, this.width, this.height, this.border)
 		}
-		Extent(this.width, this.height, 0)
+		Extent(this.width, 0, this.height)
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		
@@ -463,7 +464,7 @@ Parse(content:string) = {
 						text = ''
 					}
 					AddChildItem(itemStack, ItemOperator(ch))
-				} elsif (ch in [' ', '\t']) {
+				} elsif (ch in [' ', '\t', '\n']) {
 					if (!text.isempty()) {
 						AddChildItem(itemStack, ItemText(text))
 						text = ''
