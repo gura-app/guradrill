@@ -180,6 +180,15 @@ ItemBox = class(ItemContainer) {
 		this.border:public		= nil
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
+		if (!this.pack) {
+			this.DrawInline(canvas, x, y, drawFlag)
+		} elsif (this.pack == `horz) {
+			this.DrawPackHorz(canvas, x, y, drawFlag)
+		} elsif (this.pack == `vert) {
+			this.DrawPackVert(canvas, x, y, drawFlag)
+		}
+	}
+	DrawInline(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.children.isempty()) {
 			fontExt = canvas.cr.font_extents()
 			ext = Extent(0, fontExt.ascent, 0)
@@ -219,15 +228,6 @@ ItemBox = class(ItemContainer) {
 		} else {
 			0
 		}
-		/*
-		if (this.width) {
-			canvas.FoldHorz(this.children, width) {|itemsFold, y|
-				canvas.DrawItems(x + xOffset, y + yOffset, itemsFold)
-			}
-		} else {
-			canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
-		}
-		*/
 		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
 		if (this.border && drawFlag) {
 			canvas.DrawBorder(x, y, width, ascent, descent, this.border)
@@ -235,8 +235,17 @@ ItemBox = class(ItemContainer) {
 			Extent(width, ascent, descent)
 		}
 	}
+	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
+		canvas.FoldHorz(this.children, width) {|itemsFold, y|
+			canvas.DrawItems(x + xOffset, y + yOffset, itemsFold)
+		}
+	}
+	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
+		
+	}
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:', indentLevel * 2, '', this.type)
+		this.pack && printf(' pack=%s', this.pack)
 		this.width && printf(' width=%f%s', this.width, this.widthUnit)
 		this.height && printf(' height=%f%s', this.height, this.heightUnit)
 		this.align && printf(' align=%s', this.align)
@@ -476,7 +485,13 @@ Parse(content:string) = {
 					itemParent = itemStack.last()
 					text.split(',') {|field|
 						field = field.strip()
-						if (m = field.match(r'width=([\d\.]+)([a-z]+)')) {
+						if (m = field.match(r'pack=([a-z]+)')) {
+							if (m[1] in ['horz', 'vert']) {
+								itemParent.pack = m[1].tosymbol()
+							}
+						} elsif (field == 'pack') {
+							itemParent.pack = `horz
+						} elsif (m = field.match(r'width=([\d\.]+)([a-z]+)')) {
 							itemParent.width = m[1].tonumber()
 							itemParent.widthUnit = m[2]
 						} elsif (m = field.match(r'height=([\d\.]+)([a-z]+)')) {
