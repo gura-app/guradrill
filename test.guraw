@@ -56,6 +56,9 @@ Compose2(canvas:Renderer.Canvas) = {
 			3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =
 		}[pack,width=20em,height=4em,border]
 		{
+			{10}[width=3em,align=left,border] +
+				{10}[width=3em,align=center,border] +
+				{10}[width=3em,align=right,border]
 		}[pack,width=20em,height=4em,border]
 		{
 		}[pack,width=20em,height=4em,border]
