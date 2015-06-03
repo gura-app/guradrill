@@ -411,12 +411,48 @@ ItemPower = class(ItemContainer) {
 		x0 = x
 		extBase = canvas.DrawItem(x, y, itemBase, drawFlag)
 		x += extBase.x_advance
-		canvas.SetFontSizeByRatio(.8) {
+		canvas.SetFontSizeByRatio(.6) {
 			yOffset = extBase.ascent * .6
 			extPower = canvas.DrawItem(x, y - yOffset, itemPower, drawFlag)
 		}
 		x += extPower.x_advance
 		Extent(x - x0, max(yOffset + extPower.ascent, extBase.ascent), extBase.descent)
+	}
+	Print(indentLevel:number => 0):void = {
+		printf('%*s%s:\n', indentLevel * 2, '', this.type)
+		this.children:*Print(indentLevel + 1)
+	}
+}
+
+//------------------------------------------------------------------------------
+// ItemSqrt -> ItemContainer
+//------------------------------------------------------------------------------
+ItemSqrt = class(ItemContainer) {
+	__init__(itemParent:Item) = {|`Sqrt, itemParent|
+		// this.children[] stores one item: itemBase
+	}
+	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
+		widthEm = canvas.GetWidthEm()
+		htHead = widthEm * .2
+		htTail = widthEm * .5
+		wdTail1 = widthEm * .2
+		wdTail2 = widthEm * .3
+		wdTail = wdTail1 + wdTail2
+		wdMgnLeft = widthEm * .2
+		wdMgnRight = widthEm * .4
+		itemBase = this.children[0]
+		extBase = canvas.DrawItem(x + wdTail + wdMgnLeft, y, itemBase, drawFlag)
+		ascent = extBase.ascent + htHead
+		if (drawFlag) {
+			canvas.cr.move_to(x, y + extBase.descent - htTail)
+			canvas.cr.line_to(x + wdTail1, y + extBase.descent)
+			canvas.cr.line_to(x + wdTail1 + wdTail2, y - ascent)
+			canvas.cr.rel_line_to(wdMgnLeft + extBase.x_advance + wdMgnRight, 0)
+			canvas.SetLineWidth(`medium)
+			canvas.cr.stroke()
+		}
+		x += extBase.x_advance
+		Extent(wdTail + wdMgnLeft + extBase.x_advance + wdMgnRight, ascent, extBase.descent)
 	}
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:\n', indentLevel * 2, '', this.type)
@@ -436,17 +472,32 @@ AddChildItem(itemStack[]:Item, item:Item):void = {
 	itemParent.AddChild(item)
 	if (itemParent.type in [`Rational, `Power] && itemParent.children.len() >= 2) {
 		itemStack.erase(-1)
+	} elsif (itemParent.type in [`Sqrt] && itemParent.children.len() >= 1) {
+		itemStack.erase(-1)
 	}
 }
 
 Parse(content:string) = {
+	specialCharDict = %{
+		'pi'	=> '\u03c0'
+		'infty'	=> '\u221e'
+	}
+	specialOpDict = %{
+		'neq'	=> '\u2260'
+		'leq'	=> '\u2266'
+		'geq'	=> '\u2267'
+		'pm'	=> '\u00b1'
+		'mp'	=> '\u2213'
+		'simeq'	=> '\u2252'
+		'equiv'	=> '\u2261'
+	}
 	itemStack = []
 	itemStack.add(ItemRoot())
 	text = ''
-	stat = `Normal
+	stat = `Init
 	content.each {|ch|
 		utils.pushback {|pb|
-			if (stat == `Normal) {
+			if (stat == `Init) {
 				itemParent = itemStack.last()
 				if (ch == '{') {
 					item = ItemBox(itemParent)
@@ -515,6 +566,12 @@ Parse(content:string) = {
 						AddChildItem(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
+				} elsif (ch == '\\') {
+					if (!text.isempty()) {
+						AddChildItem(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					stat = `Command
 				} else {
 					text += ch
 				}
@@ -524,7 +581,7 @@ Parse(content:string) = {
 				} else {
 					itemStack.erase(-1)
 					pb.Pushback()
-					stat = `Normal
+					stat = `Init
 				}
 			} elsif (stat == `BoxAttr) {
 				if (ch == ']') {
@@ -563,9 +620,26 @@ Parse(content:string) = {
 					}
 					itemStack.erase(-1)
 					text = ''
-					stat = `Normal
+					stat = `Init
 				} else {
 					text += ch
+				}
+			} elsif (stat == `Command) {
+				if (ch.isalpha()) {
+					text += ch
+				} else {
+					if (text == 'sqrt') {
+						item = ItemSqrt(itemParent)
+						AddChildItem(itemStack, item)
+						itemStack.add(item)
+					} elsif (chConv = specialCharDict.get(text)) {
+						AddChildItem(itemStack, ItemText(itemParent, chConv))
+					} elsif (chConv = specialOpDict.get(text)) {
+						AddChildItem(itemStack, ItemOperator(itemParent, chConv))
+					}
+					text = ''
+					pb.Pushback()
+					stat = `Init
 				}
 			}
 		}
@@ -617,8 +691,10 @@ if (__name__ == '__main__') {
 	//str = 'x^2+3x^3+4=0'
 	//str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
 	//str = '123+345-1111'
-	str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
+	//str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
 	//str = '1 % {2 % 3}'
 	//str = '{1 % 2} % {2 % 3}'
+	//str = r'3 * 3 * \pi '
+	str = r'\sqrt 7'
 	Parse(str).Print()
 }

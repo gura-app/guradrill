@@ -61,10 +61,13 @@ Compose2(canvas:Renderer.Canvas) = {
 				{10}[width=3em,align=right,border]
 		}[pack,width=20em,height=4em,border]
 		{
+			3 * 3 * \pi
 		}[pack,width=20em,height=4em,border]
 		{
+			\sqrt 7 + \sqrt{3 / 5}
 		}[pack,width=20em,height=4em,border]
 		{
+			{-b \pm \sqrt{b^2 - 4ac}} / 2a
 		}[pack,width=20em,height=4em,border]
 		{
 		}[pack,width=20em,height=4em,border]
