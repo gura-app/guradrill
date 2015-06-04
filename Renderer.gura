@@ -14,8 +14,8 @@ Extent = struct(x_advance:number, ascent:number, descent:number)
 Canvas = class {
 	__init__(cr:cairo.context) = {
 		this.cr:public = cr
-		//this.fontFamilyName = 'Helvetica'
-		this.fontFamilyName = 'Times New Roman'
+		this.fontFamilyName = 'Helvetica'
+		//this.fontFamilyName = 'Times New Roman'
 		this.fontSize = 30.0
 		this.cr.select_font_face(this.fontFamilyName,
 								 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -37,12 +37,17 @@ Canvas = class {
 		}
 		this.cr.set_line_width(width)
 	}
-	SetFontSizeByRatio(ratio:number) {block} = {
+	Save() {block} = {
 		fontSizeSaved = this.fontSize
-		this.fontSize *= ratio
-		this.cr.set_font_size(this.fontSize)
 		block()
 		this.fontSize = fontSizeSaved
+		this.cr.set_font_size(this.fontSize)
+	}
+	SetFontSmall() = {
+		this.cr.set_font_size(this.fontSize * .8)
+	}
+	SetFontSizeByRatio(ratio:number) = {
+		this.fontSize *= ratio
 		this.cr.set_font_size(this.fontSize)
 	}
 	GetWidthEm() = {
@@ -240,7 +245,9 @@ ItemBox = class(ItemContainer) {
 		} else {
 			0
 		}
-		canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
+		canvas.Save {
+			canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
+		}
 		if (this.border && drawFlag) {
 			canvas.DrawBox(x, y - ascent, width, ascent + descent, this.border)
 		}
@@ -262,9 +269,11 @@ ItemBox = class(ItemContainer) {
 			// error
 		}
 		yOffset = 0
-		canvas.FoldHorz(this.children, width) {|itemsFold[]:Item, y_advance:number|
-			yOffset += y_advance
-			canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
+		canvas.Save {
+			canvas.FoldHorz(this.children, width) {|itemsFold[]:Item, y_advance:number|
+				yOffset += y_advance
+				canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
+			}
 		}
 		if (this.border && drawFlag) {
 			canvas.DrawBox(x, y, width, height, this.border)
@@ -288,11 +297,13 @@ ItemBox = class(ItemContainer) {
 		}
 		yOffset = 0
 		descentPrev = 0
-		this.children.each {|item|
-			ext = canvas.CalcExtentItem(item)
-			yOffset += ext.ascent + descentPrev
-			canvas.DrawItem(x, y + yOffset, item, drawFlag)
-			descentPrev = ext.descent
+		canvas.Save {
+			this.children.each {|item|
+				ext = canvas.CalcExtentItem(item)
+				yOffset += ext.ascent + descentPrev
+				canvas.DrawItem(x, y + yOffset, item, drawFlag)
+				descentPrev = ext.descent
+			}
 		}
 		Extent(width, 0, height)
 	}
@@ -364,7 +375,7 @@ ItemBracket = class(ItemContainer) {
 		x += extParenL.x_advance
 		extBody = canvas.DrawItems(x, y, this.children, drawFlag)
 		x += extBody.x_advance
-		x += widthEm * .15
+		x += widthEm * .1
 		extParenR = canvas.DrawSymbol(x, y, ')', drawFlag)
 		x += extParenR.x_advance
 		Extent(x - x0,
@@ -426,7 +437,8 @@ ItemPower = class(ItemContainer) {
 		x0 = x
 		extBase = canvas.DrawItem(x, y, itemBase, drawFlag)
 		x += extBase.x_advance
-		canvas.SetFontSizeByRatio(.6) {
+		canvas.Save {
+			canvas.SetFontSizeByRatio(.6)
 			yOffset = extBase.ascent * .6
 			extPower = canvas.DrawItem(x, y - yOffset, itemPower, drawFlag)
 		}
@@ -476,6 +488,24 @@ ItemSqrt = class(ItemContainer) {
 }
 
 //------------------------------------------------------------------------------
+// ItemDecorator -> Item
+//------------------------------------------------------------------------------
+ItemDecorator = class(Item) {
+	__init__(itemParent:Item, deco:symbol) = {|`Decorator, itemParent|
+		this.deco = deco
+	}
+	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
+		if (this.deco == `small) {
+			canvas.SetFontSmall()
+		}
+		Extent(0, 0, 0)
+	}
+	Print(indentLevel:number => 0):void = {
+		printf('%*s%s: %s\n', indentLevel * 2, '', this.type, this.deco)
+	}
+}
+
+//------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
 
@@ -493,6 +523,7 @@ Parse(content:string) = {
 		'simeq'	=> '\u2252'
 		'equiv'	=> '\u2261'
 	}
+	mathModeFlag = true
 	itemStack = []
 	itemStack.add(ItemRoot())
 	text = ''
@@ -515,7 +546,24 @@ Parse(content:string) = {
 						raise(error.SyntaxError, 'unbalanced bracket')
 					}
 					stat = `BoxAttrPre
+				} elsif (ch in [' ', '\t', '\n']) {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+				} elsif (ch == '\\') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					stat = `Command
+				} elsif (!mathModeFlag) {
+					text += ch
 				} elsif (ch == '(') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
 					item = ItemBracket(itemParent)
 					Item.AddChildTo(itemStack, item)
 					itemStack.add(item)
@@ -563,17 +611,6 @@ Parse(content:string) = {
 						text = ''
 					}
 					Item.AddChildTo(itemStack, ItemOperator(itemParent, ch))
-				} elsif (ch in [' ', '\t', '\n']) {
-					if (!text.isempty()) {
-						Item.AddChildTo(itemStack, ItemText(itemParent, text))
-						text = ''
-					}
-				} elsif (ch == '\\') {
-					if (!text.isempty()) {
-						Item.AddChildTo(itemStack, ItemText(itemParent, text))
-						text = ''
-					}
-					stat = `Command
 				} else {
 					text += ch
 				}
@@ -634,6 +671,8 @@ Parse(content:string) = {
 						item = ItemSqrt(itemParent)
 						Item.AddChildTo(itemStack, item)
 						itemStack.add(item)
+					} elsif (text in ['small', 'normalsize', 'large', 'it', 'bf']) {
+						Item.AddChildTo(itemStack, ItemDecorator(itemParent, text))
 					} elsif (chConv = specialCharDict.get(text)) {
 						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
 					} elsif (chConv = specialOpDict.get(text)) {
@@ -697,6 +736,6 @@ if (__name__ == '__main__') {
 	//str = '1 % {2 % 3}'
 	//str = '{1 % 2} % {2 % 3}'
 	//str = r'3 * 3 * \pi '
-	str = r'\sqrt 7'
+	str = r'2(10 + 12)'
 	Parse(str).Print()
 }

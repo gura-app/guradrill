@@ -43,7 +43,7 @@ Compose2(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
-		${'{' + format('(%d)', 1..) + [
+		${'{' + format(r'{\small (%d)}[width=3em]', 1..) + [
 			r'(10 + 30) * 5 % 2 - 7 ='
 			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
 			r'\sqrt{x^2 + y^2 + z^2}'
@@ -55,8 +55,8 @@ Compose2(canvas:Renderer.Canvas) = {
 			r'\sqrt 7 + \sqrt{3 / 5}'
 			r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
 			r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
-		] + '}[pack,width=20em,height=4em]'}
-	}[pack,width=40em,height=20em]
+		] + '}[pack,width=18em,height=4em]'}
+	}[pack,width=40em,height=18em]
 	'''.embed())
 }
 
