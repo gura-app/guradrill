@@ -14,9 +14,8 @@ Extent = struct(x_advance:number, ascent:number, descent:number)
 Canvas = class {
 	__init__(cr:cairo.context) = {
 		this.cr:public = cr
-		//fontFamilyName = 'Monaco'
-		this.fontFamilyName = 'Helvetica'
-		//fontFamilyName = 'Geneva'
+		//this.fontFamilyName = 'Helvetica'
+		this.fontFamilyName = 'Times New Roman'
 		this.fontSize = 30.0
 		this.cr.select_font_face(this.fontFamilyName,
 								 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
@@ -30,11 +29,11 @@ Canvas = class {
 	}
 	SetLineWidth(border:symbol) = {
 		width = if (border == `thin) {
-			.1
-		} elsif (border == `medium) {
 			.5
-		} else {
+		} elsif (border == `medium) {
 			1
+		} else {
+			2
 		}
 		this.cr.set_line_width(width)
 	}
@@ -73,7 +72,6 @@ Canvas = class {
 		Extent(textExt.x_advance, -textExt.y_bearing, textExt.height + textExt.y_bearing)
 	}
 	DrawSymbol(x:number, y:number, text:string, drawFlag:boolean => true) = {
-		text = ConvOpSymbol(text)
 		textExt = this.cr.text_extents(text)
 		offsetCenter = this.GetOffsetCenter()
 		ascent = offsetCenter + textExt.height / 2
@@ -142,6 +140,15 @@ Item = class {
 		this.itemParent:public = itemParent
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {}
+	AddChildTo(itemStack[]:Item, item:Item):void:static = {
+		itemParent = itemStack.last()
+		itemParent.AddChild(item)
+		if (itemParent.type in [`Rational, `Power] && itemParent.children.len() >= 2) {
+			itemStack.erase(-1)
+		} elsif (itemParent.type in [`Sqrt] && itemParent.children.len() >= 1) {
+			itemStack.erase(-1)
+		}
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -320,8 +327,16 @@ ItemText = class(Item) {
 // ItemOperator -> Item
 //------------------------------------------------------------------------------
 ItemOperator = class(Item) {
-	__init__(itemParent:Item, opSymbol:string) = {|`Operator, itemParent|
-		this.opSymbol:public = opSymbol
+	__init__(itemParent:Item, text:string) = {|`Operator, itemParent|
+		this.opSymbol:public = if (text == '*') {
+			'\u00d7'
+		} elsif (text == '%') {
+			'\u00f7'
+		} elsif (text == '-') {
+			'\u2212'
+		} else {
+			text
+		}
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		x0 = x
@@ -333,7 +348,7 @@ ItemOperator = class(Item) {
 		Extent(x - x0, ext.ascent, ext.descent)
 	}
 	Print(indentLevel:number => 0):void = {
-		printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, ConvOpSymbol(this.opSymbol))
+		printf('%*s%s: "%s"\n', indentLevel * 2, '', this.type, this.opSymbol)
 	}
 }
 
@@ -434,19 +449,19 @@ ItemSqrt = class(ItemContainer) {
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		widthEm = canvas.GetWidthEm()
 		htHead = widthEm * .2
-		htTail = widthEm * .5
-		wdTail1 = widthEm * .2
-		wdTail2 = widthEm * .3
-		wdTail = wdTail1 + wdTail2
+		htTails = [.4, .5] * widthEm
+		wdTails = [.1, .2, .3] * widthEm
+		wdTail = wdTails.sum()
 		wdMgnLeft = widthEm * .2
 		wdMgnRight = widthEm * .4
 		itemBase = this.children[0]
 		extBase = canvas.DrawItem(x + wdTail + wdMgnLeft, y, itemBase, drawFlag)
 		ascent = extBase.ascent + htHead
 		if (drawFlag) {
-			canvas.cr.move_to(x, y + extBase.descent - htTail)
-			canvas.cr.line_to(x + wdTail1, y + extBase.descent)
-			canvas.cr.line_to(x + wdTail1 + wdTail2, y - ascent)
+			canvas.cr.move_to(x, y + extBase.descent - htTails[0])
+			canvas.cr.line_to(x + wdTails[0], y + extBase.descent - htTails[1])
+			canvas.cr.line_to(x + wdTails[0..1].sum(), y + extBase.descent)
+			canvas.cr.line_to(x + wdTails.sum(), y - ascent)
 			canvas.cr.rel_line_to(wdMgnLeft + extBase.x_advance + wdMgnRight, 0)
 			canvas.SetLineWidth(`medium)
 			canvas.cr.stroke()
@@ -463,19 +478,6 @@ ItemSqrt = class(ItemContainer) {
 //------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
-ConvOpSymbol(text:string) = {
-	if (text == '*') {'\u00d7'} elsif (text == '%') {'\u00f7'} else {text}
-}
-
-AddChildItem(itemStack[]:Item, item:Item):void = {
-	itemParent = itemStack.last()
-	itemParent.AddChild(item)
-	if (itemParent.type in [`Rational, `Power] && itemParent.children.len() >= 2) {
-		itemStack.erase(-1)
-	} elsif (itemParent.type in [`Sqrt] && itemParent.children.len() >= 1) {
-		itemStack.erase(-1)
-	}
-}
 
 Parse(content:string) = {
 	specialCharDict = %{
@@ -501,11 +503,11 @@ Parse(content:string) = {
 				itemParent = itemStack.last()
 				if (ch == '{') {
 					item = ItemBox(itemParent)
-					AddChildItem(itemStack, item)
+					Item.AddChildTo(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == '}') {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -515,12 +517,12 @@ Parse(content:string) = {
 					stat = `BoxAttrPre
 				} elsif (ch == '(') {
 					item = ItemBracket(itemParent)
-					AddChildItem(itemStack, item)
+					Item.AddChildTo(itemStack, item)
 					itemStack.add(item)
 				} elsif (ch == ')') {
 					itemParent = itemStack.last()
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
@@ -531,44 +533,44 @@ Parse(content:string) = {
 					text = ''
 				} elsif (ch == '/') {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
 					if (itemLast = itemParent.GetLastChild()) {
 						itemParent.EraseLastChild()
 						item = ItemRational(itemParent)
-						AddChildItem(itemStack, item)
+						Item.AddChildTo(itemStack, item)
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
 				} elsif (ch == '^') {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						itemParent = itemStack.last()
 						text = ''
 					}
 					if (itemLast = itemParent.GetLastChild()) {
 						itemParent.EraseLastChild()
 						item = ItemPower(itemParent)
-						AddChildItem(itemStack, item)
+						Item.AddChildTo(itemStack, item)
 						item.AddChild(itemLast)
 						itemStack.add(item)
 					}
 				} elsif (ch in ['+', '-', '*', '%', '=', '<', '>']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
-					AddChildItem(itemStack, ItemOperator(itemParent, ch))
+					Item.AddChildTo(itemStack, ItemOperator(itemParent, ch))
 				} elsif (ch in [' ', '\t', '\n']) {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
 				} elsif (ch == '\\') {
 					if (!text.isempty()) {
-						AddChildItem(itemStack, ItemText(itemParent, text))
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
 						text = ''
 					}
 					stat = `Command
@@ -630,12 +632,12 @@ Parse(content:string) = {
 				} else {
 					if (text == 'sqrt') {
 						item = ItemSqrt(itemParent)
-						AddChildItem(itemStack, item)
+						Item.AddChildTo(itemStack, item)
 						itemStack.add(item)
 					} elsif (chConv = specialCharDict.get(text)) {
-						AddChildItem(itemStack, ItemText(itemParent, chConv))
+						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
 					} elsif (chConv = specialOpDict.get(text)) {
-						AddChildItem(itemStack, ItemOperator(itemParent, chConv))
+						Item.AddChildTo(itemStack, ItemOperator(itemParent, chConv))
 					}
 					text = ''
 					pb.Pushback()
@@ -646,7 +648,7 @@ Parse(content:string) = {
 	}
 	if (!text.isempty()) {
 		itemParent = itemStack.last()
-		AddChildItem(itemStack, ItemText(itemParent, text))
+		Item.AddChildTo(itemStack, ItemText(itemParent, text))
 	}
 	itemStack.first()
 }
