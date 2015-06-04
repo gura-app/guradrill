@@ -4,6 +4,11 @@ import(cairo)
 import(utils)
 
 //------------------------------------------------------------------------------
+// forward-declaration
+//------------------------------------------------------------------------------
+Item = class()
+
+//------------------------------------------------------------------------------
 // Extent
 //------------------------------------------------------------------------------
 Extent = struct(x_advance:number, ascent:number, descent:number)
@@ -88,10 +93,10 @@ Canvas = class {
 		}
 		Extent(textExt.x_advance, ascent, descent)
 	}
-	DrawItem(x:number, y:number, item, drawFlag:boolean => true) = {
+	DrawItem(x:number, y:number, item:Item, drawFlag:boolean => true) = {
 		item.Draw(this, x, y, drawFlag)
 	}
-	DrawItems(x:number, y:number, items[], drawFlag:boolean => true) = {
+	DrawItems(x:number, y:number, items[]:Item, drawFlag:boolean => true) = {
 		x0 = x
 		ascent = descent = 0
 		items.each {|item|
@@ -102,8 +107,8 @@ Canvas = class {
 		}
 		Extent(x - x0, ascent, descent)
 	}
-	CalcExtentItem(item) = this.DrawItem(0, 0, item, false)
-	CalcExtentItems(items[]) = this.DrawItems(0, 0, items, false)
+	CalcExtentItem(item:Item) = this.DrawItem(0, 0, item, false)
+	CalcExtentItems(items[]:Item) = this.DrawItems(0, 0, items, false)
 	Render(content:string) = {
 		ext = this.DrawItem(this.x, this.y, Parse(content))
 		this.x += ext.x_advance
@@ -113,7 +118,7 @@ Canvas = class {
 		this.x = this.xTop
 		this.y += fontExt.height * mag
 	}
-	FoldHorz(items[], width:number) {block} = {
+	FoldHorz(items[]:Item, width:number) {block} = {
 		itemsFold = []
 		wdAccum = 0
 		descentPrev = 0
