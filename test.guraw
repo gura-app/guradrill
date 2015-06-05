@@ -39,36 +39,12 @@ Compose1(canvas:Renderer.Canvas) = {
 	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 }
 
-Compose2(canvas:Renderer.Canvas) = {
-	canvas.SetPosition(20, 20)
-	canvas.Render(R'''
-	{
-		${'{' + format(r'{\small (%d)}[width=3em]', 1..) + [
-			r'(10 + 30) * 5 % 2 - 7 ='
-			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
-			r'\sqrt{x^2 + y^2 + z^2}'
-			r'3 / 500 + 2 / 3 - {}[width=3em,border] / 10 ='
-			r'{10}[width=3em,align=left,border] +' \
-			r'{10}[width=3em,align=center,border] +' \
-			r'{10}[width=3em,align=right,border]'
-			r'3 * 3 * \pi'
-			r'\sqrt 7 + \sqrt{3 / 5}'
-			r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
-			r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
-		] + '}[pack,width=18em,height=4em]'}
-	}[pack,width=40em,height=18em]
-	'''.embed())
-}
-
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.img = image(`rgba, 1000, 600)
-		this.img.cairo {|cr|
-			canvas = Renderer.Canvas(cr)
-			Compose2(canvas)
-		}
-		this.bmp = wx.Bitmap(this.img)
+		this.canvas = Renderer.Canvas.CreateForPreview(1)
+		Renderer.Compose2(this.canvas)
+		this.bmp = wx.Bitmap(this.canvas.GetImage())
 	}
 	OnPaint(event:wx.PaintEvent) = {
 		dc = wx.PaintDC(this)

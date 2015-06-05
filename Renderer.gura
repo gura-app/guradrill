@@ -2,6 +2,7 @@
 import(re)
 import(cairo)
 import(utils)
+import(units)
 
 //------------------------------------------------------------------------------
 // forward-declaration
@@ -21,24 +22,41 @@ Canvas = class {
 		this.cr:public = cr
 		this.fontFamilyName = 'Helvetica'
 		//this.fontFamilyName = 'Times New Roman'
-		this.fontSize = 30.0
+		this.fontSize = 7.0
 		this.cr.select_font_face(this.fontFamilyName,
 								 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		this.cr.set_font_size(this.fontSize)
 		this.x = this.y = 0
 		this.xTop = 0
 	}
+	CreateForPreview(magScale:number):static = {
+		scale = magScale * 4
+		this.img = image(`rgba, 210 * scale, 297 * scale, '#eeeeee')
+		cr = this.img.cairo()
+		cr.scale(scale, scale)
+		Canvas(cr)
+	}
+	CreateForPDF(fileName:string):static = {
+		scale = 72 / 25.4
+		cr = cairo.create(cairo.pdf_surface.create(fileName, 210 * scale, 297 * scale))
+		cr.scale(scale, scale)
+		Canvas(cr)
+	}
+	Flush() = {
+		this.cr.destroy()
+	}
+	GetImage() = this.img
 	SetPosition(x:number, y:number) = {
 		this.x = x, this.y = y
 		this.xTop = x
 	}
 	SetLineWidth(border:symbol) = {
 		width = if (border == `thin) {
-			.5
+			.1
 		} elsif (border == `medium) {
-			1
+			.2
 		} else {
-			2
+			.5
 		}
 		this.cr.set_line_width(width)
 	}
@@ -733,6 +751,27 @@ DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 	}
 }
 
+Compose2(canvas:Renderer.Canvas) = {
+	canvas.SetPosition(20, 20)
+	canvas.Render(R'''
+	{
+		${'{' + format(r'{\small (%d)}[width=3em]', 1..) + [
+			r'(10 + 30) * 5 % 2 - 7 ='
+			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
+			r'\sqrt{x^2 + y^2 + z^2}'
+			r'3 / 500 + 2 / 3 - {}[width=3em,border] / 10 ='
+			r'{10}[width=3em,align=left,border] +' \
+			r'{10}[width=3em,align=center,border] +' \
+			r'{10}[width=3em,align=right,border]'
+			r'3 * 3 * \pi'
+			r'\sqrt 7 + \sqrt{3 / 5}'
+			r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
+			r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
+		] + '}[pack,width=18em,height=4em]'}
+	}[pack,width=40em,height=18em]
+	'''.embed())
+}
+
 if (__name__ == '__main__') {
 	//str = 'x^2+3x^3+4=0'
 	//str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
@@ -741,6 +780,9 @@ if (__name__ == '__main__') {
 	//str = '1 % {2 % 3}'
 	//str = '{1 % 2} % {2 % 3}'
 	//str = r'3 * 3 * \pi '
-	str = r'2(10 + 12)'
-	Parse(str).Print()
+	//str = r'2(10 + 12)'
+	//Parse(str).Print()
+	canvas = Canvas.CreateForPDF('a.pdf')
+	Compose2(canvas)
+	canvas.Flush()
 }
