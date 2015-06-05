@@ -6,7 +6,7 @@ import(Renderer)
 
 App = class(wx.App) {
 	OnInit() = {
-		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(1000, 600))
+		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(1000, 750))
 		frame.Show()
 		true
 	}
@@ -42,7 +42,7 @@ Compose1(canvas:Renderer.Canvas) = {
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.canvas = Renderer.Canvas.CreateForPreview(1)
+		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, 1)
 		Renderer.Compose2(this.canvas)
 		this.bmp = wx.Bitmap(this.canvas.GetImage())
 	}

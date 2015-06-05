@@ -15,6 +15,16 @@ Item = class()
 Extent = struct(x_advance:number, ascent:number, descent:number)
 
 //------------------------------------------------------------------------------
+// PaperSize
+//------------------------------------------------------------------------------
+PaperSize = struct(mmWidth:number, mmHeight:number)
+
+PaperSize@B4:public = PaperSize(257, 364)
+PaperSize@B5:public = PaperSize(182, 257)
+PaperSize@A4:public = PaperSize(210, 297)
+PaperSize@A5:public = PaperSize(148, 210)
+
+//------------------------------------------------------------------------------
 // Canvas
 //------------------------------------------------------------------------------
 Canvas = class {
@@ -22,23 +32,24 @@ Canvas = class {
 		this.cr:public = cr
 		this.fontFamilyName = 'Helvetica'
 		//this.fontFamilyName = 'Times New Roman'
-		this.fontSize = 7.0
+		this.fontSize = this.fontSizeNormal = 5.0
 		this.cr.select_font_face(this.fontFamilyName,
 								 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		this.cr.set_font_size(this.fontSize)
 		this.x = this.y = 0
 		this.xTop = 0
 	}
-	CreateForPreview(magScale:number):static = {
+	CreateForPreview(paperSize:PaperSize, magScale:number):static = {
 		scale = magScale * 4
-		this.img = image(`rgba, 210 * scale, 297 * scale, '#eeeeee')
+		this.img = image(`rgba, paperSize.mmWidth * scale, paperSize.mmHeight * scale, '#eeeeee')
 		cr = this.img.cairo()
 		cr.scale(scale, scale)
 		Canvas(cr)
 	}
-	CreateForPDF(fileName:string):static = {
+	CreateForPDF(paperSize:PaperSize, fileName:string):static = {
 		scale = 72 / 25.4
-		cr = cairo.create(cairo.pdf_surface.create(fileName, 210 * scale, 297 * scale))
+		cr = cairo.create(cairo.pdf_surface.create(
+				fileName, paperSize.mmWidth * scale, paperSize.mmHeight * scale))
 		cr.scale(scale, scale)
 		Canvas(cr)
 	}
@@ -66,10 +77,11 @@ Canvas = class {
 		this.fontSize = fontSizeSaved
 		this.cr.set_font_size(this.fontSize)
 	}
-	SetFontSmall() = {
-		this.cr.set_font_size(this.fontSize * .8)
+	SetFontSize(ratio:number) = {
+		this.fontSize = this.fontSizeNormal * ratio
+		this.cr.set_font_size(this.fontSize)
 	}
-	SetFontSizeByRatio(ratio:number) = {
+	SetFontSizeBy(ratio:number) = {
 		this.fontSize *= ratio
 		this.cr.set_font_size(this.fontSize)
 	}
@@ -79,6 +91,10 @@ Canvas = class {
 	CalcLength(n:number, unit:string) = {
 		if (unit == 'em') {
 			n * this.GetWidthEm()
+		} elsif (unit == 'mm') {
+			n
+		} elsif (unit == 'cm') {
+			n * 10
 		} else {
 			n
 		}
@@ -461,7 +477,7 @@ ItemPower = class(ItemContainer) {
 		extBase = canvas.DrawItem(x, y, itemBase, drawFlag)
 		x += extBase.x_advance
 		canvas.Save {
-			canvas.SetFontSizeByRatio(.6)
+			canvas.SetFontSizeBy(.6)
 			yOffset = extBase.ascent * .6
 			extPower = canvas.DrawItem(x, y - yOffset, itemPower, drawFlag)
 		}
@@ -518,8 +534,16 @@ ItemDecorator = class(Item) {
 		this.deco = deco
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
-		if (this.deco == `small) {
-			canvas.SetFontSmall()
+		if (this.deco == `tiny) {
+			canvas.SetFontSize(.6)
+		} elsif (this.deco == `small) {
+			canvas.SetFontSize(.8)
+		} elsif (this.deco == `normalsize) {
+			canvas.SetFontSize(1.0)
+		} elsif (this.deco == `large) {
+			canvas.SetFontSize(1.2)
+		} elsif (this.deco == `it) {
+		} elsif (this.deco == `bf) {
 		}
 		Extent(0, 0, 0)
 	}
@@ -694,7 +718,7 @@ Parse(content:string) = {
 						item = ItemSqrt(itemParent)
 						Item.AddChildTo(itemStack, item)
 						itemStack.add(item)
-					} elsif (text in ['small', 'normalsize', 'large', 'it', 'bf']) {
+					} elsif (text in ['tiny', 'small', 'normalsize', 'large', 'it', 'bf']) {
 						Item.AddChildTo(itemStack, ItemDecorator(itemParent, text))
 					} elsif (chConv = specialCharDict.get(text)) {
 						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
@@ -755,20 +779,26 @@ Compose2(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
-		${'{' + format(r'{\small (%d)}[width=3em]', 1..) + [
+		{
+			Mathematics
+		}[width=170mm,height=20mm,border]
+		{}[width=170mm,height=10mm]
+		${'{' + format(r'{\small (%d)}[width=12mm,align=center]{\large ', 1..) + [
 			r'(10 + 30) * 5 % 2 - 7 ='
 			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
 			r'\sqrt{x^2 + y^2 + z^2}'
 			r'3 / 500 + 2 / 3 - {}[width=3em,border] / 10 ='
 			r'{10}[width=3em,align=left,border] +' \
-			r'{10}[width=3em,align=center,border] +' \
-			r'{10}[width=3em,align=right,border]'
+				r'{10}[width=3em,align=center,border] +' \
+				r'{10}[width=3em,align=right,border]'
 			r'3 * 3 * \pi'
-			r'\sqrt 7 + \sqrt{3 / 5}'
 			r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
+			r'\sqrt 7 + \sqrt{3 / 5}'
 			r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
-		] + '}[pack,width=18em,height=4em]'}
-	}[pack,width=40em,height=18em]
+			r'24 % 6'
+			r'3 / 10 * 2'
+		] + '}}[pack,width=85mm,height=20mm,border]'}
+	}[pack,width=170mm,height=250mm]
 	'''.embed())
 }
 
@@ -782,7 +812,7 @@ if (__name__ == '__main__') {
 	//str = r'3 * 3 * \pi '
 	//str = r'2(10 + 12)'
 	//Parse(str).Print()
-	canvas = Canvas.CreateForPDF('a.pdf')
+	canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
 	Compose2(canvas)
 	canvas.Flush()
 }
