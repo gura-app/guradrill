@@ -564,11 +564,11 @@ ItemNewline = class(Item) {
 //------------------------------------------------------------------------------
 
 Parse(paperSize:PaperSize, content:string) = {
-	specialCharDict = %{
+	textCharDict = %{
 		'pi'	=> '\u03c0'
 		'infty'	=> '\u221e'
 	}
-	specialOpDict = %{
+	opCharDict = %{
 		'neq'	=> '\u2260'
 		'leq'	=> '\u2266'
 		'geq'	=> '\u2267'
@@ -742,9 +742,9 @@ Parse(paperSize:PaperSize, content:string) = {
 					} elsif (text in ['tiny', 'small', 'normalsize', 'large',
 										'it', 'bf']) {
 						Item.AddChildTo(itemStack, ItemCommand(itemParent, text))
-					} elsif (chConv = specialCharDict.get(text)) {
+					} elsif (chConv = textCharDict.get(text)) {
 						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
-					} elsif (chConv = specialOpDict.get(text)) {
+					} elsif (chConv = opCharDict.get(text)) {
 						Item.AddChildTo(itemStack, ItemOperator(itemParent, chConv))
 					}
 					text = ''
