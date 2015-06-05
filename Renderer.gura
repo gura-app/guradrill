@@ -28,8 +28,9 @@ PaperSize@A5:public = PaperSize(148, 210)
 // Canvas
 //------------------------------------------------------------------------------
 Canvas = class {
-	__init__(cr:cairo.context) = {
+	__init__(cr:cairo.context, paperSize:PaperSize) = {
 		this.cr:public = cr
+		this.paperSize:public = paperSize
 		this.fontFamilyName = 'Helvetica'
 		//this.fontFamilyName = 'Times New Roman'
 		this.fontSize = this.fontSizeNormal = 5.0
@@ -44,14 +45,14 @@ Canvas = class {
 		this.img = image(`rgba, paperSize.mmWidth * scale, paperSize.mmHeight * scale, '#eeeeee')
 		cr = this.img.cairo()
 		cr.scale(scale, scale)
-		Canvas(cr)
+		Canvas(cr, paperSize)
 	}
 	CreateForPDF(paperSize:PaperSize, fileName:string):static = {
 		scale = 72 / 25.4
 		cr = cairo.create(cairo.pdf_surface.create(
 				fileName, paperSize.mmWidth * scale, paperSize.mmHeight * scale))
 		cr.scale(scale, scale)
-		Canvas(cr)
+		Canvas(cr, paperSize)
 	}
 	Flush() = {
 		this.cr.destroy()
@@ -144,34 +145,29 @@ Canvas = class {
 	CalcExtentItem(item:Item) = this.DrawItem(0, 0, item, false)
 	CalcExtentItems(items[]:Item) = this.DrawItems(0, 0, items, false)
 	Render(content:string) = {
-		ext = this.DrawItem(this.x, this.y, Parse(content))
+		ext = this.DrawItem(this.x, this.y, Parse(this.paperSize, content))
 		this.x += ext.x_advance
-	}
-	Newline(mag:number => 1) = {
-		fontExt = this.cr.font_extents()
-		this.x = this.xTop
-		this.y += fontExt.height * mag
 	}
 	FoldHorz(items[]:Item, width:number) {block} = {
 		itemsFold = []
-		wdAccum = 0
+		widthFold = 0
 		descentPrev = 0
 		ascent = descent = 0
 		items.each {|item|
 			ext = this.CalcExtentItem(item)
-			if (wdAccum + ext.x_advance > width || item.type == `Newline) {
-				block(itemsFold, descentPrev + ascent)
+			if (widthFold + ext.x_advance > width || item.type == `Newline) {
+				block(itemsFold, widthFold, descentPrev + ascent)
 				itemsFold.clear()
-				wdAccum = 0
+				widthFold = 0
 				descentPrev = descent
 				ascent = descent = 0
 			}
-			wdAccum += ext.x_advance
+			widthFold += ext.x_advance
 			itemsFold.add(item)
 			if (ascent < ext.ascent) {ascent = ext.ascent}
 			if (descent < ext.descent) {descent = ext.descent}
 		}
-		block(itemsFold, descentPrev + ascent)
+		block(itemsFold, widthFold, descentPrev + ascent)
 	}
 }
 
@@ -209,24 +205,10 @@ ItemContainer = class(Item) {
 }
 
 //------------------------------------------------------------------------------
-// ItemRoot -> ItemContainer
-//------------------------------------------------------------------------------
-ItemRoot = class(ItemContainer) {
-	__init__() = {|`Root, nil|}
-	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
-		canvas.DrawItems(x, y, this.children, drawFlag)
-	}
-	Print(indentLevel:number => 0):void = {
-		printf('%*s%s:\n', indentLevel * 2, '', this.type)
-		this.children:*Print(indentLevel + 1)
-	}
-}
-
-//------------------------------------------------------------------------------
 // ItemBox -> ItemContainer
 //------------------------------------------------------------------------------
 ItemBox = class(ItemContainer) {
-	__init__(itemParent:Item) = {|`Box, itemParent|
+	__init__(itemParent:Item:nil) = {|`Box, itemParent|
 		this.pack:public		= nil
 		this.width:public		= nil
 		this.widthUnit:public	= nil
@@ -257,7 +239,6 @@ ItemBox = class(ItemContainer) {
 		} else {
 			width = ext.x_advance
 		}
-		xOffset = 0, yOffset = 0
 		if (this.height) {
 			height = canvas.CalcLength(this.height, this.heightUnit)
 			offsetCenter = canvas.GetOffsetCenter()
@@ -310,9 +291,19 @@ ItemBox = class(ItemContainer) {
 		}
 		yOffset = 0
 		canvas.Save {
-			canvas.FoldHorz(this.children, width) {|itemsFold[]:Item, y_advance:number|
+			canvas.FoldHorz(this.children, width) {|itemsFold[]:Item,
+													widthFold:number, y_advance:number|
+				xOffset = if (this.align == `left) {
+					0
+				} elsif (this.align == `center) {
+					(width - widthFold) / 2
+				} elsif (this.align == `right) {
+					width - widthFold
+				} else {
+					0
+				}
 				yOffset += y_advance
-				canvas.DrawItems(x, y + yOffset, itemsFold, drawFlag)
+				canvas.DrawItems(x + xOffset, y + yOffset, itemsFold, drawFlag)
 			}
 		}
 		if (this.border && drawFlag) {
@@ -572,7 +563,7 @@ ItemNewline = class(Item) {
 // Functions
 //------------------------------------------------------------------------------
 
-Parse(content:string) = {
+Parse(paperSize:PaperSize, content:string) = {
 	specialCharDict = %{
 		'pi'	=> '\u03c0'
 		'infty'	=> '\u221e'
@@ -588,7 +579,15 @@ Parse(content:string) = {
 	}
 	mathModeFlag = true
 	itemStack = []
-	itemStack.add(ItemRoot())
+	ItemBox(nil) {|item|
+		item.width = paperSize.mmWidth
+		item.widthUnit = 'mm'
+		item.height = paperSize.mmHeight
+		item.heightUnit = 'mm'
+		item.align = `center
+		item.valign = `medium
+		itemStack.add(item)
+	}
 	text = ''
 	stat = `Init
 	content.each {|ch|
@@ -853,7 +852,6 @@ Compose2(canvas:Renderer.Canvas) = {
 }
 
 Compose(canvas:Renderer.Canvas) = {
-	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
 		{
@@ -894,7 +892,7 @@ Compose(canvas:Renderer.Canvas) = {
 		{
 			r-b
 		}[width=20mm,height=20mm,align=right,valign=bottom,border]
-	}[pack,width=170mm,height=250mm,border]
+	}[pack,width=170mm,height=250mm,align=right,border]
 	'''.embed())
 }
 

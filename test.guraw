@@ -15,7 +15,7 @@ App = class(wx.App) {
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, 1)
+		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .5)
 		Renderer.Compose(this.canvas)
 		this.bmp = wx.Bitmap(this.canvas.GetImage())
 	}
