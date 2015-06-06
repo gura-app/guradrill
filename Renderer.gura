@@ -35,7 +35,7 @@ Length = struct(n:number, unit:string => '') {
 			this.n
 		}
 	}
-	
+	__str__() = format('%g%s', this.n, this.unit)
 }
 
 //------------------------------------------------------------------------------
@@ -231,14 +231,14 @@ ItemBox = class(ItemContainer) {
 		this.border:public				= nil
 		this.width:public				= nil
 		this.height:public				= nil
-		this.marginTop:public			= Length(0)
-		this.marginBottom:public		= Length(0)
-		this.marginLeft:public			= Length(0)
-		this.marginRight:public			= Length(0)
-		this.paddingTop:public			= Length(0)
-		this.paddingBottom:public		= Length(0)
-		this.paddingLeft:public			= Length(0)
-		this.paddingRight:public		= Length(0)
+		this.marginTop:public			= nil
+		this.marginBottom:public		= nil
+		this.marginLeft:public			= nil
+		this.marginRight:public			= nil
+		this.paddingTop:public			= nil
+		this.paddingBottom:public		= nil
+		this.paddingLeft:public			= nil
+		this.paddingRight:public		= nil
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		if (!this.pack) {
@@ -376,10 +376,18 @@ ItemBox = class(ItemContainer) {
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:', indentLevel * 2, '', this.type)
 		this.pack && printf(' pack=%s', this.pack)
-		this.width && printf(' width=%s', this.width)
-		this.height && printf(' height=%s', this.height)
 		this.align && printf(' align=%s', this.align)
 		this.border && printf(' border=%s', this.border)
+		this.width && printf(' width=%s', this.width)
+		this.height && printf(' height=%s', this.height)
+		this.marginTop && printf(' margin-top=%s', this.marginTop)
+		this.marginBottom && printf(' margin-bottom=%s', this.marginBottom)
+		this.marginLeft && printf(' margin-left=%s', this.marginLeft)
+		this.marginRight && printf(' margin-right=%s', this.marginRight)
+		this.paddingTop && printf(' padding-top=%s', this.paddingTop)
+		this.paddingBottom && printf(' padding-bottom=%s', this.paddingBottom)
+		this.paddingLeft && printf(' padding-left=%s', this.paddingLeft)
+		this.paddingRight && printf(' padding-right=%s', this.paddingRight)
 		println()
 		this.children:*Print(indentLevel + 1)
 	}
@@ -875,7 +883,7 @@ Compose1(canvas:Renderer.Canvas) = {
 	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 }
 
-Compose2(canvas:Renderer.Canvas) = {
+Compose(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
@@ -903,47 +911,38 @@ Compose2(canvas:Renderer.Canvas) = {
 	'''.embed())
 }
 
-Compose(canvas:Renderer.Canvas) = {
+Compose3(canvas:Renderer.Canvas) = {
+	canvas.Render(R'''
+	{
+		{none}[width=20mm,height=20mm,border]
+		{top}[width=20mm,height=20mm,valign=top,border]
+		{medium}[width=20mm,height=20mm,valign=medium,border]
+		{bottom}[width=20mm,height=20mm,valign=bottom,border]
+		\\
+		{none}[width=20mm,height=20mm,border]
+		{left}[width=20mm,height=20mm,align=left,border]
+		{center}[width=20mm,height=20mm,align=center,border]
+		{right}[width=20mm,height=20mm,align=right,border]
+		\\
+		{l-t}[width=20mm,height=20mm,align=left,valign=top,border]
+		{r-t}[width=20mm,height=20mm,align=right,valign=top,border]
+		{l-b}[width=20mm,height=20mm,align=left,valign=bottom,border]
+		{r-b}[width=20mm,height=20mm,align=right,valign=bottom,border]
+	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+	'''.embed())
+}
+
+Compose4(canvas:Renderer.Canvas) = {
 	canvas.Render(R'''
 	{
 		{
-			none
-		}[width=20mm,height=20mm,border]
+			{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
+			{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
+		}[width=40mm,height=40mm,border]
 		{
-			top
-		}[width=20mm,height=20mm,valign=top,border]
+		}[width=40mm,height=40mm,margin-left=5mm,border]
 		{
-			medium
-		}[width=20mm,height=20mm,valign=medium,border]
-		{
-			bottom
-		}[width=20mm,height=20mm,valign=bottom,border]
-		\\
-		{
-			none
-		}[width=20mm,height=20mm,border]
-		{
-			left
-		}[width=20mm,height=20mm,align=left,border]
-		{
-			center
-		}[width=20mm,height=20mm,align=center,border]
-		{
-			right
-		}[width=20mm,height=20mm,align=right,border]
-		\\
-		{
-			l-t
-		}[width=20mm,height=20mm,align=left,valign=top,border]
-		{
-			r-t
-		}[width=20mm,height=20mm,align=right,valign=top,border]
-		{
-			l-b
-		}[width=20mm,height=20mm,align=left,valign=bottom,border]
-		{
-			r-b
-		}[width=20mm,height=20mm,align=right,valign=bottom,border]
+		}[width=40mm,height=40mm,margin-left=5mm,margin-top=5mm,border]
 	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
 	'''.embed())
 }
