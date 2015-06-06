@@ -2,17 +2,40 @@
 import(re)
 import(cairo)
 import(utils)
-import(units)
 
 //------------------------------------------------------------------------------
 // forward-declaration
 //------------------------------------------------------------------------------
+Canvas = class()
 Item = class()
 
 //------------------------------------------------------------------------------
 // Extent
 //------------------------------------------------------------------------------
 Extent = struct(x_advance:number, ascent:number, descent:number)
+
+//------------------------------------------------------------------------------
+// Length
+//------------------------------------------------------------------------------
+Length = struct(n:number, unit:string => '') {
+	CalcMM(canvas:Canvas) = {
+		if (this.unit == 'em') {
+			this.n * canvas.GetWidthEm()
+		} elsif (this.unit == 'ex') {
+			this.n * canvas.GetWidthEx()
+		} elsif (this.unit == 'mm') {
+			this.n
+		} elsif (this.unit == 'cm') {
+			this.n * 10
+		} elsif (this.unit == 'in') {
+			this.n * 25.4
+		} elsif (this.unit == 'pt') {
+			this.n * 25.4 / 72
+		} else {
+			this.n
+		}
+	}
+}
 
 //------------------------------------------------------------------------------
 // PaperSize
@@ -89,16 +112,8 @@ Canvas = class {
 	GetWidthEm() = {
 		this.cr.text_extents('m').width
 	}
-	CalcLength(n:number, unit:string) = {
-		if (unit == 'em') {
-			n * this.GetWidthEm()
-		} elsif (unit == 'mm') {
-			n
-		} elsif (unit == 'cm') {
-			n * 10
-		} else {
-			n
-		}
+	GetWidthEx() = {
+		this.cr.text_extents('x').width
 	}
 	GetOffsetCenter() = {
 		-this.cr.text_extents('0').y_bearing / 2
@@ -209,14 +224,20 @@ ItemContainer = class(Item) {
 //------------------------------------------------------------------------------
 ItemBox = class(ItemContainer) {
 	__init__(itemParent:Item:nil) = {|`Box, itemParent|
-		this.pack:public		= nil
-		this.width:public		= nil
-		this.widthUnit:public	= nil
-		this.height:public		= nil
-		this.heightUnit:public	= nil
-		this.align:public		= nil
-		this.valign:public		= nil
-		this.border:public		= nil
+		this.pack:public				= nil
+		this.align:public				= nil
+		this.valign:public				= nil
+		this.border:public				= nil
+		this.width:public				= nil
+		this.height:public				= nil
+		this.marginTop:public			= Length(0)
+		this.marginBottom:public		= Length(0)
+		this.marginLeft:public			= Length(0)
+		this.marginRight:public			= Length(0)
+		this.paddingTop:public			= Length(0)
+		this.paddingBottom:public		= Length(0)
+		this.paddingLeft:public			= Length(0)
+		this.paddingRight:public		= Length(0)
 	}
 	Draw(canvas:Canvas, x:number, y:number, drawFlag:boolean => true) = {
 		if (!this.pack) {
@@ -235,12 +256,12 @@ ItemBox = class(ItemContainer) {
 			ext = canvas.CalcExtentItems(this.children)
 		}
 		if (this.width) {
-			width = canvas.CalcLength(this.width, this.widthUnit)
+			width = this.width.CalcMM(canvas)
 		} else {
 			width = ext.x_advance
 		}
 		if (this.height) {
-			height = canvas.CalcLength(this.height, this.heightUnit)
+			height = this.height.CalcMM(canvas)
 			offsetCenter = canvas.GetOffsetCenter()
 			ascent = height / 2 + offsetCenter
 			descent = height / 2 - offsetCenter
@@ -276,16 +297,16 @@ ItemBox = class(ItemContainer) {
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.width) {
-			width = canvas.CalcLength(this.width, this.widthUnit)
+			width = this.width.CalcMM(canvas)
 		} elsif (this.itemParent.type == `Box) {
-			width = canvas.CalcLength(this.itemParent.width, this.itemParent.widthUnit)
+			width = this.itemParent.width.CalcMM(canvas)
 		} else {
 			// error
 		}
 		if (this.height) {
-			height = canvas.CalcLength(this.height, this.heightUnit)
+			height = this.height.CalcMM(canvas)
 		} elsif (this.itemParent.type == `Box) {
-			height = canvas.CalcLength(this.itemParent.height, this.itemParent.heightUnit)
+			height = this.itemParent.height.CalcMM(canvas)
 		} else {
 			// error
 		}
@@ -313,16 +334,16 @@ ItemBox = class(ItemContainer) {
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.width) {
-			width = canvas.CalcLength(this.width, this.widthUnit)
+			width = this.width.CalcMM(canvas)
 		} elsif (this.itemParent.type == `Box) {
-			width = canvas.CalcLength(this.itemParent.width, this.itemParent.widthUnit)
+			width = this.itemParent.width.CalcMM(canvas)
 		} else {
 			// error
 		}
 		if (this.height) {
-			height = canvas.CalcLength(this.height, this.heightUnit)
+			height = this.height.CalcMM(canvas)
 		} elsif (this.itemParent.type == `Box) {
-			height = canvas.CalcLength(this.itemParent.height, this.itemParent.heightUnit)
+			height = this.itemParent.height.CalcMM(canvas)
 		} else {
 			// error
 		}
@@ -341,8 +362,8 @@ ItemBox = class(ItemContainer) {
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:', indentLevel * 2, '', this.type)
 		this.pack && printf(' pack=%s', this.pack)
-		this.width && printf(' width=%f%s', this.width, this.widthUnit)
-		this.height && printf(' height=%f%s', this.height, this.heightUnit)
+		this.width && printf(' width=%s', this.width)
+		this.height && printf(' height=%s', this.height)
 		this.align && printf(' align=%s', this.align)
 		this.border && printf(' border=%s', this.border)
 		println()
@@ -580,10 +601,8 @@ Parse(paperSize:PaperSize, content:string) = {
 	mathModeFlag = true
 	itemStack = []
 	ItemBox(nil) {|item|
-		item.width = paperSize.mmWidth
-		item.widthUnit = 'mm'
-		item.height = paperSize.mmHeight
-		item.heightUnit = 'mm'
+		item.width = Length(paperSize.mmWidth, 'mm')
+		item.height = Length(paperSize.mmHeight, 'mm')
 		item.align = `center
 		item.valign = `medium
 		itemStack.add(item)
@@ -696,11 +715,33 @@ Parse(paperSize:PaperSize, content:string) = {
 						} elsif (field == 'pack') {
 							itemParent.pack = `horz
 						} elsif (m = field.match(r'^width\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.width = m[1].tonumber()
-							itemParent.widthUnit = m[2]
+							itemParent.width = Length(m[1].tonumber(), m[2])
 						} elsif (m = field.match(r'^height\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.height = m[1].tonumber()
-							itemParent.heightUnit = m[2]
+							itemParent.height = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginTop = itemParent.marginBottom = \
+								itemParent.marginLeft = itemParent.marginRight = \
+								Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-top\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginTop = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginBottom = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-left\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginLeft = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-right\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginRight = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingTop = itemParent.paddingBottom = \
+								itemParent.paddingLeft = itemParent.paddingRight = \
+								Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-top\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingTop = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingBottom = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-left\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingLeft = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-right\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingRight = Length(m[1].tonumber(), m[2])
 						} elsif (m = field.match(r'^border\s*=\s*([a-z]+)')) {
 							if (m[1] in ['thin', 'medium', 'thick']) {
 								itemParent.border = m[1].tosymbol()
@@ -740,7 +781,7 @@ Parse(paperSize:PaperSize, content:string) = {
 					} elsif (text == 'newline') {
 						Item.AddChildTo(itemStack, ItemNewline(itemParent))
 					} elsif (text in ['tiny', 'small', 'normalsize', 'large',
-										'it', 'bf']) {
+									  'it', 'bf']) {
 						Item.AddChildTo(itemStack, ItemCommand(itemParent, text))
 					} elsif (chConv = textCharDict.get(text)) {
 						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
@@ -829,8 +870,8 @@ Compose2(canvas:Renderer.Canvas) = {
 	{
 		{
 			{}[width=30mm,height=30mm,align=left,border]
-		}[width=170mm,height=20mm,border]
-		{}[width=170mm,height=10mm]
+		}[width=170mm,height=30mm,border]
+		{}[width=170mm,height=10mm,border]
 		${'{' + format(r'{\small (%d)}[width=8mm,align=center]{}[width=2mm]{\large ', 1..) + [
 			r'(10 + 30) * 5 % 2 - 7 ='
 			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
@@ -892,7 +933,7 @@ Compose(canvas:Renderer.Canvas) = {
 		{
 			r-b
 		}[width=20mm,height=20mm,align=right,valign=bottom,border]
-	}[pack,width=170mm,height=250mm,align=right,border]
+	}[pack,width=170mm,height=250mm,border]
 	'''.embed())
 }
 
