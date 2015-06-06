@@ -35,6 +35,7 @@ Length = struct(n:number, unit:string => '') {
 			this.n
 		}
 	}
+	
 }
 
 //------------------------------------------------------------------------------
@@ -269,6 +270,14 @@ ItemBox = class(ItemContainer) {
 			ascent = ext.ascent
 			descent = ext.descent
 		}
+		marginTop = if (this.marginTop) {this.marginTop.CalcMM(canvas)} else {0}
+		marginBottom = if (this.marginBottom) {this.marginBottom.CalcMM(canvas)} else {0}
+		marginLeft = if (this.marginLeft) {this.marginLeft.CalcMM(canvas)} else {0}
+		marginRight = if (this.marginRight) {this.marginRight.CalcMM(canvas)} else {0}
+		paddingTop = if (this.paddingTop) {this.paddingTop.CalcMM(canvas)} else {0}
+		paddingBottom = if (this.paddingBottom) {this.paddingBottom.CalcMM(canvas)} else {0}
+		paddingLeft = if (this.paddingLeft) {this.paddingLeft.CalcMM(canvas)} else {0}
+		paddingRight = if (this.paddingRight) {this.paddingRight.CalcMM(canvas)} else {0}
 		xOffset = if (this.align == `left) {
 			0
 		} elsif (this.align == `center) {
@@ -288,62 +297,67 @@ ItemBox = class(ItemContainer) {
 			0
 		}
 		canvas.Save {
-			canvas.DrawItems(x + xOffset, y + yOffset, this.children, drawFlag)
+			canvas.DrawItems(x + xOffset + marginLeft + paddingLeft,
+							 y + yOffset + marginTop + paddingTop, this.children, drawFlag)
 		}
 		if (this.border && drawFlag) {
-			canvas.DrawBox(x, y - ascent, width, ascent + descent, this.border)
+			canvas.DrawBox(x + marginLeft, y - ascent + marginTop,
+						   paddingLeft + width + paddingRight,
+						   paddingTop + ascent + descent + paddingBottom, this.border)
 		}
-		Extent(width, ascent, descent)
+		Extent(marginLeft + paddingLeft + width + paddingRight + marginRight,
+			   marginTop + paddingTop + ascent, descent + paddingBottom + marginBottom)
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.width) {
 			width = this.width.CalcMM(canvas)
-		} elsif (this.itemParent.type == `Box) {
-			width = this.itemParent.width.CalcMM(canvas)
 		} else {
 			// error
 		}
 		if (this.height) {
 			height = this.height.CalcMM(canvas)
-		} elsif (this.itemParent.type == `Box) {
-			height = this.itemParent.height.CalcMM(canvas)
 		} else {
 			// error
 		}
+		marginTop = if (this.marginTop) {this.marginTop.CalcMM(canvas)} else {0}
+		marginBottom = if (this.marginBottom) {this.marginBottom.CalcMM(canvas)} else {0}
+		marginLeft = if (this.marginLeft) {this.marginLeft.CalcMM(canvas)} else {0}
+		marginRight = if (this.marginRight) {this.marginRight.CalcMM(canvas)} else {0}
+		paddingTop = if (this.paddingTop) {this.paddingTop.CalcMM(canvas)} else {0}
+		paddingBottom = if (this.paddingBottom) {this.paddingBottom.CalcMM(canvas)} else {0}
+		paddingLeft = if (this.paddingLeft) {this.paddingLeft.CalcMM(canvas)} else {0}
+		paddingRight = if (this.paddingRight) {this.paddingRight.CalcMM(canvas)} else {0}
 		yOffset = 0
 		canvas.Save {
-			canvas.FoldHorz(this.children, width) {|itemsFold[]:Item,
-													widthFold:number, y_advance:number|
+			canvas.FoldHorz(this.children, width - (paddingLeft + paddingRight)) {
+								|itemsFold[]:Item, widthFold:number, y_advance:number|
 				xOffset = if (this.align == `left) {
-					0
+					marginLeft + paddingLeft
 				} elsif (this.align == `center) {
-					(width - widthFold) / 2
+					marginLeft + (width - widthFold) / 2
 				} elsif (this.align == `right) {
-					width - widthFold
+					marginLeft + width - widthFold - paddingRight
 				} else {
-					0
+					marginLeft + paddingLeft
 				}
 				yOffset += y_advance
-				canvas.DrawItems(x + xOffset, y + yOffset, itemsFold, drawFlag)
+				canvas.DrawItems(x + xOffset,
+								 y + yOffset + marginTop + paddingTop, itemsFold, drawFlag)
 			}
 		}
 		if (this.border && drawFlag) {
-			canvas.DrawBox(x, y, width, height, this.border)
+			canvas.DrawBox(x + marginLeft, y + marginTop, width, height, this.border)
 		}
-		Extent(width, 0, height)
+		Extent(marginLeft + width + marginRight, 0, marginTop + height + marginBottom)
 	}
 	DrawPackVert(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.width) {
 			width = this.width.CalcMM(canvas)
-		} elsif (this.itemParent.type == `Box) {
-			width = this.itemParent.width.CalcMM(canvas)
 		} else {
 			// error
 		}
 		if (this.height) {
 			height = this.height.CalcMM(canvas)
-		} elsif (this.itemParent.type == `Box) {
-			height = this.itemParent.height.CalcMM(canvas)
 		} else {
 			// error
 		}
@@ -583,7 +597,6 @@ ItemNewline = class(Item) {
 //------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
-
 Parse(paperSize:PaperSize, content:string) = {
 	textCharDict = %{
 		'pi'	=> '\u03c0'
@@ -603,8 +616,6 @@ Parse(paperSize:PaperSize, content:string) = {
 	ItemBox(nil) {|item|
 		item.width = Length(paperSize.mmWidth, 'mm')
 		item.height = Length(paperSize.mmHeight, 'mm')
-		item.align = `center
-		item.valign = `medium
 		itemStack.add(item)
 	}
 	text = ''
@@ -933,7 +944,7 @@ Compose(canvas:Renderer.Canvas) = {
 		{
 			r-b
 		}[width=20mm,height=20mm,align=right,valign=bottom,border]
-	}[pack,width=170mm,height=250mm,border]
+	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
 	'''.embed())
 }
 
