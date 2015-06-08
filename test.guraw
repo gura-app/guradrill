@@ -4,6 +4,26 @@ import(wx)
 import(cairo)
 import(Renderer)
 
+GenUniqRand2(range1:number, range2:number, n:number) {block} = {
+	tbl = []
+	i = 0
+	while (i < n):xiter {
+		x1 = rand(range1), x2 = rand(range2)
+		str = format('%d,%d', x1, x2)
+		tbl.find(str) && continue
+		tbl.add(str)
+		!(rtn = block(x1, x2, i)) && continue
+		i += 1
+		rtn
+	}
+}
+
+GenQuestion(n:number) = GenUniqRand2(range1 => 90, range2 => 90, n => n) {|a, b|
+	if (a <= b) { continue }
+	a += 10, b += 10
+	r'\large ${a} - ${b} = {}[border,width=3em]'.embed()
+}
+
 App = class(wx.App) {
 	OnInit() = {
 		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(1000, 750))
@@ -15,8 +35,14 @@ App = class(wx.App) {
 PanelMain = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, 1)
-		Renderer.Compose(this.canvas)
+		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
+		str = R'''
+		{
+		${format('{%s}[width=85mm,height=30mm]\n', GenQuestion(10))}
+		}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+		'''.embed()
+		this.canvas.Render(str)
+		//Renderer.Compose(this.canvas)
 		this.bmp = wx.Bitmap(this.canvas.GetImage())
 	}
 	OnPaint(event:wx.PaintEvent) = {

@@ -122,8 +122,8 @@ Canvas = class {
 		-this.cr.text_extents('0').y_bearing / 2
 	}
 	ClipBox(x:number, y:number, width:number, height:number) = {
-		this.cr.rectangle(x, y, width, height)
-		this.cr.clip()
+		//this.cr.rectangle(x, y, width, height)
+		//this.cr.clip()
 	}	
 	DrawBox(x:number, y:number, width:number, height:number, border:symbol) = {
 		this.cr.rectangle(x, y, width, height)
@@ -1004,8 +1004,16 @@ if (__name__ == '__main__') {
 	//str = '{1 % 2} % {2 % 3}'
 	//str = r'3 * 3 * \pi '
 	//str = r'2(10 + 12)'
-	//Parse(str).Print()
+	str = R'''
+	{
+	${format('{%s}[width=85mm,height=30mm]\n', GenQuestion(10))}
+	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+	'''.embed()
 	canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
-	Compose(canvas)
+	canvas.Render(str)
+	//Compose(canvas)
 	canvas.Flush()
+	//randseed(os.clock())
+	//println(x)
+	
 }
