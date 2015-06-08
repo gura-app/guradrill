@@ -98,9 +98,11 @@ Canvas = class {
 	}
 	Save() {block} = {
 		fontSizeSaved = this.fontSize
-		block()
+		this.cr.save {
+			block()
+		}
 		this.fontSize = fontSizeSaved
-		this.cr.set_font_size(this.fontSize)
+		//this.cr.set_font_size(this.fontSize)
 	}
 	SetFontSize(ratio:number) = {
 		this.fontSize = this.fontSizeNormal * ratio
@@ -119,6 +121,10 @@ Canvas = class {
 	GetOffsetCenter() = {
 		-this.cr.text_extents('0').y_bearing / 2
 	}
+	ClipBox(x:number, y:number, width:number, height:number) = {
+		this.cr.rectangle(x, y, width, height)
+		this.cr.clip()
+	}	
 	DrawBox(x:number, y:number, width:number, height:number, border:symbol) = {
 		this.cr.rectangle(x, y, width, height)
 		this.SetLineWidth(border)
@@ -297,11 +303,15 @@ ItemBox = class(ItemContainer) {
 			0
 		}
 		canvas.Save {
-			canvas.DrawItems(x + xOffset + marginLeft,
-							 y + yOffset + marginTop, this.children, drawFlag)
+			canvas.ClipBox(x + marginLeft + paddingLeft,
+						   y + marginTop + paddingTop - ascent,
+						   width - (paddingLeft + paddingRight),
+						   ascent + descent - (paddingTop + paddingBottom))
+			canvas.DrawItems(x + marginLeft + xOffset, y + marginTop + yOffset,
+							 this.children, drawFlag)
 		}
 		if (this.border && drawFlag) {
-			canvas.DrawBox(x + marginLeft, y - ascent + marginTop,
+			canvas.DrawBox(x + marginLeft, y + marginTop - ascent,
 						   width, ascent + descent, this.border)
 		}
 		Extent(marginLeft + width + marginRight, marginTop + ascent, descent + marginBottom)
@@ -327,6 +337,10 @@ ItemBox = class(ItemContainer) {
 		paddingRight = if (this.paddingRight) {this.paddingRight.CalcMM(canvas)} else {0}
 		yOffset = 0
 		canvas.Save {
+			canvas.ClipBox(x + marginLeft + paddingLeft,
+						   y + marginTop + paddingTop,
+						   width - (paddingLeft + paddingRight),
+						   height - (paddingTop + paddingBottom))
 			canvas.FoldHorz(this.children, width - (paddingLeft + paddingRight)) {
 								|itemsFold[]:Item, widthFold:number, y_advance:number|
 				xOffset = if (this.align == `left) {
@@ -359,17 +373,33 @@ ItemBox = class(ItemContainer) {
 		} else {
 			// error
 		}
+		marginTop = if (this.marginTop) {this.marginTop.CalcMM(canvas)} else {0}
+		marginBottom = if (this.marginBottom) {this.marginBottom.CalcMM(canvas)} else {0}
+		marginLeft = if (this.marginLeft) {this.marginLeft.CalcMM(canvas)} else {0}
+		marginRight = if (this.marginRight) {this.marginRight.CalcMM(canvas)} else {0}
+		paddingTop = if (this.paddingTop) {this.paddingTop.CalcMM(canvas)} else {0}
+		paddingBottom = if (this.paddingBottom) {this.paddingBottom.CalcMM(canvas)} else {0}
+		paddingLeft = if (this.paddingLeft) {this.paddingLeft.CalcMM(canvas)} else {0}
+		paddingRight = if (this.paddingRight) {this.paddingRight.CalcMM(canvas)} else {0}
 		yOffset = 0
 		descentPrev = 0
 		canvas.Save {
+			canvas.ClipBox(x + marginLeft + paddingLeft,
+						   y + marginTop + paddingTop,
+						   width - (paddingLeft + paddingRight),
+						   height - (paddingTop + paddingBottom))
 			this.children.each {|item|
 				ext = canvas.CalcExtentItem(item)
 				yOffset += ext.ascent + descentPrev
-				canvas.DrawItem(x, y + yOffset, item, drawFlag)
+				canvas.DrawItem(x + marginLeft + paddingLeft,
+								y + yOffset + marginTop + paddingTop, item, drawFlag)
 				descentPrev = ext.descent
 			}
 		}
-		Extent(width, 0, height)
+		if (this.border && drawFlag) {
+			canvas.DrawBox(x + marginLeft, y + marginTop, width, height, this.border)
+		}
+		Extent(marginLeft + width + marginRight, 0, marginTop + height + marginBottom)
 	}
 	Print(indentLevel:number => 0):void = {
 		printf('%*s%s:', indentLevel * 2, '', this.type)
@@ -881,7 +911,7 @@ Compose1(canvas:Renderer.Canvas) = {
 	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 }
 
-Compose2(canvas:Renderer.Canvas) = {
+Compose(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
@@ -945,13 +975,23 @@ Compose4(canvas:Renderer.Canvas) = {
 	'''.embed())
 }
 
-Compose(canvas:Renderer.Canvas) = {
+Compose5(canvas:Renderer.Canvas) = {
 	canvas.Render(R'''
 	{
 		{abcdefghijklmn}[width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
-		{}[width=30mm,height=30mm,margin-left=5mm,border]
+		{abcdefghijklmn}[pack,width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
 		{}[width=30mm,height=30mm,border]
 	}[pack,width=150mm,height=150mm,border]
+	'''.embed())
+}
+
+Compose(canvas:Renderer.Canvas) = {
+	canvas.Render(R'''
+	{
+		{abcd}[border]
+		{abcdefghijklmn}[border]
+		{abcdefg}[border]
+	}[pack=vert,width=80mm,height=80mm,border]
 	'''.embed())
 }
 
