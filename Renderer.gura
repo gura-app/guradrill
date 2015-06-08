@@ -122,6 +122,7 @@ Canvas = class {
 		-this.cr.text_extents('0').y_bearing / 2
 	}
 	ClipBox(x:number, y:number, width:number, height:number) = {
+		//printf('%d %d %d %d\n', x, y, width, height)
 		//this.cr.rectangle(x, y, width, height)
 		//this.cr.clip()
 	}	
@@ -1006,8 +1007,13 @@ if (__name__ == '__main__') {
 	//str = r'2(10 + 12)'
 	str = R'''
 	{
-	${format('{%s}[width=85mm,height=30mm]\n', GenQuestion(10))}
-	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+		{
+			hello
+		}[pack,width=170mm,height=50mm,border]
+		{
+			${format('{%s}[width=85mm,height=30mm]\n', GenQuestion(10))}
+		}[pack,width=170mm,height=200mm,border]
+	}[pack=vert,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
 	'''.embed()
 	canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
 	canvas.Render(str)
