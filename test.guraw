@@ -4,10 +4,10 @@ import(wx)
 import(cairo)
 import(Renderer)
 
-GenUniqRand2(range1:number, range2:number, n:number) {block} = {
+GenUniqRand2(range1:number, range2:number) {block} = {
 	tbl = []
 	i = 0
-	while (i < n):xiter {
+	repeat():xiter {
 		x1 = rand(range1), x2 = rand(range2)
 		str = format('%d,%d', x1, x2)
 		tbl.find(str) && continue
@@ -18,15 +18,63 @@ GenUniqRand2(range1:number, range2:number, n:number) {block} = {
 	}
 }
 
-GenQuestion_001(n:number) = GenUniqRand2(range1 => 90, range2 => 90, n => n) {|a, b|
-	if (a <= b) { continue }
-	a += 10, b += 10
-	r'${a} - ${b} = {}[border,width=5em,height=2em]'.embed()
+GenUniqRand3(range1:number, range2:number, range3:number) {block} = {
+	tbl = []
+	i = 0
+	repeat():xiter {
+		x1 = rand(range1), x2 = rand(range2), x3 = rand(range3)
+		str = format('%d,%d,%d', x1, x2, x3)
+		tbl.find(str) && continue
+		tbl.add(str)
+		!(rtn = block(x1, x2, x3, i)) && continue
+		i += 1
+		rtn
+	}
 }
 
-GenQuestion_002(n:number) = GenUniqRand2(range1 => 90, range2 => 90, n => n) {|a, b|
+GenUniqRand4(range1:number, range2:number, range3:number, range4:number) {block} = {
+	tbl = []
+	i = 0
+	repeat():xiter {
+		x1 = rand(range1), x2 = rand(range2), x3 = rand(range3), x4 = rand(range4)
+		str = format('%d,%d,%d,%d', x1, x2, x3, x4)
+		tbl.find(str) && continue
+		tbl.add(str)
+		!(rtn = block(x1, x2, x3, x4, i)) && continue
+		i += 1
+		rtn
+	}
+}
+
+GenQ_001() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+	if (a <= b) { continue }
 	a += 10, b += 10
-	r'${a} + ${b} = {}[border,width=5em,height=2em]'.embed()
+	r'${a} - ${b} ='.embed()
+}
+
+GenQ_002() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+	a += 10, b += 10
+	r'${a} + ${b} ='.embed()
+}
+
+GenQ_003() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+	a += 10, b += 10
+	r'${a} * ${b} ='.embed()
+}
+
+GenQ_004() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+	a += 10, b += 10
+	r'${a} % ${b} ='.embed()
+}
+
+GenQ_005() = GenUniqRand3(range1 => 20, range2 => 20, range3 => 20) {|a, b, c|
+	a += 1, b += 1, c += 1
+	r'${a} + ${b} * ${c} ='.embed()
+}
+
+GenQ_006() = GenUniqRand4(range1 => 20, range2 => 20, range3 => 20, range4 => 20) {|a, b, c, d|
+	a += 1, b += 1, c += 1, d += 1
+	r'${a}/${b} * ${c}/${d} ='.embed()
 }
 
 tmplPage = R'''
@@ -35,9 +83,8 @@ tmplPage = R'''
 		{}[width=30mm,height=20mm,border]
 		{hello}[width=130mm,height=20mm,border]
 	}[pack,width=170mm,height=20mm,border]
-	{
-		${format(fmtQuestion, 1.., GenQuestion_001(24))}
-	}[pack,width=170mm,height=230mm]
+	{}[height=10mm]
+	{${questions}}[pack,width=170mm,height=230mm]
 }[pack=vert,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm]
 '''.template()
 
@@ -56,6 +103,10 @@ PanelMain = class(wx.Panel) {
 		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
 		fmtQuestion = r'{\small (%d)}[width=8mm,align=center]{}[width=3mm]' + \
 					r'{\large %s}[width=74mm,height=20mm]\n'
+		questions = format(fmtQuestion, 1..,
+			[GenQ_001().head(5), GenQ_002().head(5),
+			GenQ_003().head(5), GenQ_004().head(5),
+			GenQ_005().head(5), GenQ_006().head(5)].shuffle())
 		this.canvas.Render(tmplPage.render())
 		//Renderer.Compose(this.canvas)
 		this.bmp = wx.Bitmap(this.canvas.GetImage())
