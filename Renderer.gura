@@ -279,34 +279,32 @@ ItemBox = class(ItemContainer) {
 		paddingLeft = if (this.paddingLeft) {this.paddingLeft.CalcMM(canvas)} else {0}
 		paddingRight = if (this.paddingRight) {this.paddingRight.CalcMM(canvas)} else {0}
 		xOffset = if (this.align == `left) {
-			0
+			paddingLeft
 		} elsif (this.align == `center) {
 			(width - ext.x_advance) / 2
 		} elsif (this.align == `right) {
-			width - ext.x_advance
+			width - ext.x_advance - paddingRight
 		} else {
-			0
+			paddingLeft
 		}
 		yOffset = if (this.valign == `top) {
-			-ascent + ext.ascent
+			paddingTop - ascent + ext.ascent
 		} elsif (this.valign == `medium) {
 			0
 		} elsif (this.valign == `bottom) {
-			descent - ext.descent
+			descent - ext.descent - paddingBottom
 		} else {
 			0
 		}
 		canvas.Save {
-			canvas.DrawItems(x + xOffset + marginLeft + paddingLeft,
-							 y + yOffset + marginTop + paddingTop, this.children, drawFlag)
+			canvas.DrawItems(x + xOffset + marginLeft,
+							 y + yOffset + marginTop, this.children, drawFlag)
 		}
 		if (this.border && drawFlag) {
 			canvas.DrawBox(x + marginLeft, y - ascent + marginTop,
-						   paddingLeft + width + paddingRight,
-						   paddingTop + ascent + descent + paddingBottom, this.border)
+						   width, ascent + descent, this.border)
 		}
-		Extent(marginLeft + paddingLeft + width + paddingRight + marginRight,
-			   marginTop + paddingTop + ascent, descent + paddingBottom + marginBottom)
+		Extent(marginLeft + width + marginRight, marginTop + ascent, descent + marginBottom)
 	}
 	DrawPackHorz(canvas:Canvas, x:number, y:number, drawFlag:boolean) = {
 		if (this.width) {
@@ -883,7 +881,7 @@ Compose1(canvas:Renderer.Canvas) = {
 	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
 }
 
-Compose(canvas:Renderer.Canvas) = {
+Compose2(canvas:Renderer.Canvas) = {
 	canvas.SetPosition(20, 20)
 	canvas.Render(R'''
 	{
@@ -944,6 +942,16 @@ Compose4(canvas:Renderer.Canvas) = {
 		{
 		}[width=40mm,height=40mm,margin-left=5mm,margin-top=5mm,border]
 	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+	'''.embed())
+}
+
+Compose(canvas:Renderer.Canvas) = {
+	canvas.Render(R'''
+	{
+		{abcdefghijklmn}[width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
+		{}[width=30mm,height=30mm,margin-left=5mm,border]
+		{}[width=30mm,height=30mm,border]
+	}[pack,width=150mm,height=150mm,border]
 	'''.embed())
 }
 
