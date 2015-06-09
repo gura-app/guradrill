@@ -4,116 +4,160 @@ import(wx)
 import(cairo)
 import(Renderer)
 
-GenUniqRand2(range1:number, range2:number) {block} = {
+GenUniqRand(range+:number) {block} = {
 	tbl = []
 	i = 0
 	repeat():xiter {
-		x1 = rand(range1), x2 = rand(range2)
-		str = format('%d,%d', x1, x2)
+		xs = rand(range):map
+		str = format('%d', xs).join(',')
 		tbl.find(str) && continue
 		tbl.add(str)
-		!(rtn = block(x1, x2, i)) && continue
+		!(rtn = block(xs*, i)) && continue
 		i += 1
 		rtn
 	}
 }
 
-GenUniqRand3(range1:number, range2:number, range3:number) {block} = {
-	tbl = []
-	i = 0
-	repeat():xiter {
-		x1 = rand(range1), x2 = rand(range2), x3 = rand(range3)
-		str = format('%d,%d,%d', x1, x2, x3)
-		tbl.find(str) && continue
-		tbl.add(str)
-		!(rtn = block(x1, x2, x3, i)) && continue
-		i += 1
-		rtn
+classref(`rational).display() = {
+	if (this.denom == 1) {
+		format('%d', this.numer)
+	} elsif (this.numer > this.denom) {
+		num = int(this.numer / this.denom)
+		format('%d %d/%d', num, this.numer - num * this.denom, this.denom)
+	} else {
+		format('%d/%d', this.numer, this.denom)
 	}
 }
 
-GenUniqRand4(range1:number, range2:number, range3:number, range4:number) {block} = {
-	tbl = []
-	i = 0
-	repeat():xiter {
-		x1 = rand(range1), x2 = rand(range2), x3 = rand(range3), x4 = rand(range4)
-		str = format('%d,%d,%d,%d', x1, x2, x3, x4)
-		tbl.find(str) && continue
-		tbl.add(str)
-		!(rtn = block(x1, x2, x3, x4, i)) && continue
-		i += 1
-		rtn
-	}
-}
-
-QGenerator_add_2digit_2digit = class {
-	Generate() = {
-		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
-			a += 10, b += 10
-			r'${a} + ${b} ='.embed()
+Question = struct(question:string, answer:string) {
+	Compose(answerFlag:boolean) = {
+		if (answerFlag) {
+			this.question + r'{' + this.answer + '}[padding=2mm,border]'
+		} else {
+			this.question
 		}
 	}
 }
 
-QGenerator_sub_2digit_2digit = class {
+QGenerator = class {
+	Compose(n:number, answerFlag:boolean) = {
+		this.Generate().head(n):*Compose(answerFlag)
+	}
+}
+
+QGenerator_add_2digit_2digit = class(QGenerator) {
 	Generate() = {
-		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+		GenUniqRand(90, 90) {|a, b|
+			a += 10, b += 10
+			Question(r'${a} + ${b} ='.embed(), '${a + b}'.embed())
+		}
+	}
+}
+
+QGenerator_sub_2digit_2digit = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(90, 90) {|a, b|
 			if (a <= b) { continue }
 			a += 10, b += 10
-			r'${a} - ${b} ='.embed()
+			Question(r'${a} - ${b} ='.embed(), '${a - b}'.embed())
 		}
 	}
 }
 
-QGenerator_mul_2digit_2digit = class {
+QGenerator_mul_2digit_2digit = class(QGenerator) {
 	Generate() = {
-		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+		GenUniqRand(90, 90) {|a, b|
 			a += 10, b += 10
-			r'${a} * ${b} ='.embed()
+			Question(r'${a} * ${b} ='.embed(), '${a * b}'.embed())
 		}
 	}
 }
 
-QGenerator_div_2digit_2digit = class {
+QGenerator_div_2digit_2digit = class(QGenerator) {
 	Generate() = {
-		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+		GenUniqRand(90, 90) {|a, b|
 			a += 10, b += 10
-			r'${a} % ${b} ='.embed()
+			Question(r'${a} % ${b} ='.embed(), '${a / b}'.embed())
 		}
 	}
 }
 
-QGenerator_mix3_2digit_2digit_2digit = class {
+QGenerator_mix3_2digit_2digit_2digit = class(QGenerator) {
 	Generate() = {
-		GenUniqRand3(range1 => 20, range2 => 20, range3 => 20) {|a, b, c|
+		GenUniqRand(20, 20, 20) {|a, b, c|
 			a += 1, b += 1, c += 1
-			r'${a} + ${b} * ${c} ='.embed()
+			Question(r'${a} + ${b} * ${c} ='.embed(), '${a + b * c}'.embed())
 		}
 	}
 }
 
-QGenerator_frac_mul_2digit@2digit_2digit@2digit = class {
+QGenerator_frac_add_2digit@2digit_2digit@2digit = class(QGenerator) {
 	Generate() = {
-		GenUniqRand4(range1 => 20, range2 => 20, range3 => 20, range4 => 20) {|a, b, c, d|
+		GenUniqRand(9, 9, 9, 9) {|a, b, c, d|
 			a += 1, b += 1, c += 1, d += 1
-			r'${a}/${b} * ${c}/${d} ='.embed()
+			if (a > b || c > d) {continue}
+			x1 = rational(a, b).reduce()
+			x2 = rational(c, d).reduce()
+			if (x1.denom == 1 && x2.denom == 1) {continue}
+			if ((x1.denom == 1 || x2.denom == 1) && rand() > .2) {continue}
+			ans = x1 + x2
+			Question(r'${x1.display()} + ${x2.display()} ='.embed(),
+					 '${ans.display()}'.embed())
+		}
+	}
+}
+
+QGenerator_quadequ_factorization = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(18, 18) {|x1, x2|
+			x1 = if (x1 < 9) {x1 - 9} else {x1 - 9 + 1}
+			x2 = if (x2 < 9) {x2 - 9} else {x2 - 9 + 1}
+			b = -x1 - x2, c = x1 * x2
+			question = 'x^2'
+			if (b == 1) {
+				question += '+x'
+			} elsif (b == -1) {
+				question += '-x'
+			} elsif (b != 0) {
+				question += format('%+dx', b)
+			}
+			question += format('%+d = 0', c)
+			if (x1 == x2) {
+				answer = format('x = %d', x1)
+			} else {
+				answer = format('x = %d, %d', x1, x2)
+			}
+			Question(question, answer)
+		}
+	}
+}
+
+QGenerator_quadequ_formula = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(20, 20, 20) {|a, b, c|
+			Question(r'${a}x^2 + ${b}x + ${c} = 0'.embed(),
+					 r'x = {${-b} \pm \sqrt{${b * b - 4 * a * c}}} / ${2 * a}'.embed())
 		}
 	}
 }
 
 MakePage() = {
+	answerFlag = true
+	width = 170 - 8 - 3, height = 20
 	fmtQuestion = R'''
 	{\small (%d)}[width=8mm,align=center]
 	{}[width=3mm]
-	{\large %s}[width=74mm,height=20mm]
-	'''
+	{\large %s}[width=${width}mm,height=${height}mm]
+	'''.embed()
 	questions = format(fmtQuestion, 1.., [
-		QGenerator_add_2digit_2digit().Generate().head(3),
-		QGenerator_sub_2digit_2digit().Generate().head(3),
-		QGenerator_mul_2digit_2digit().Generate().head(3),
-		QGenerator_div_2digit_2digit().Generate().head(3),
-		QGenerator_mix3_2digit_2digit_2digit().Generate().head(3),
-		QGenerator_frac_mul_2digit@2digit_2digit@2digit().Generate().head(3)].shuffle())
+		//QGenerator_add_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_div_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(10, answerFlag)
+		//QGenerator_quadequ_factorization().Compose(3, answerFlag)
+		].shuffle())
 	R'''
 	{
 		{
