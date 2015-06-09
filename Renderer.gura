@@ -168,7 +168,8 @@ Canvas = class {
 	CalcExtentItem(item:Item) = this.DrawItem(0, 0, item, false)
 	CalcExtentItems(items[]:Item) = this.DrawItems(0, 0, items, false)
 	Render(content:string) = {
-		ext = this.DrawItem(this.x, this.y, Parse(this.paperSize, content))
+		items = Parse(this.paperSize, content)
+		ext = this.DrawItem(this.x, this.y, items)
 		this.x += ext.x_advance
 	}
 	FoldHorz(items[]:Item, width:number) {block} = {
@@ -886,140 +887,82 @@ DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 	}
 }
 
-Compose1(canvas:Renderer.Canvas) = {
-	canvas.SetPosition(10, 60)
-	//canvas.Render('{{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]{}[width=4em,height=1em,border]}[width=10em,height=10em,border]')
-	//canvas.Render('{3 / 5}[border] / 10')
-	canvas.Render('10x + 30 =')
-	canvas.Newline()
-	canvas.Render('(10 + 30) * 5 % 2 - 7 =')
-	canvas.Newline()
-	canvas.Render('{10}[width=3em,align=left,border] + ' \
-				  '{10}[width=3em,align=center,border] + ' \
-				  '{10}[width=3em,align=right,border]')
-	canvas.Newline(2)
-	canvas.Render('{10}[width=3em,align=center] + {20}[width=3em,align=center] = {}[width=3em,height=2em,border]')
-	canvas.Newline(2)
-	canvas.Render('{10}[width=3em,align=center,border] + {}[width=3em,border] = {}[width=3em,border]')
-	canvas.Newline(2)
-	canvas.Render('3 / 500 + 2 / 3 - {}[width=3em,border] / 10 =')
-	canvas.Newline(3)
-	canvas.SetPosition(400, 60)
-	canvas.Render('3 ^ 4 + 2 ^ {3x + 2}')
-	canvas.Newline(1.5)
-	canvas.Render('3x^2 + 4x + 5 + {}[width=3em,height=2em,border]')
-	canvas.Newline()
-	//canvas.Render('5x + 3 = 0 が成り立つとき、xの値をもとめよ。')
-}
-
-Compose(canvas:Renderer.Canvas) = {
-	canvas.SetPosition(20, 20)
-	canvas.Render(R'''
+test1 = R'''
+{
 	{
-		{
-			{}[width=30mm,height=30mm,align=left,border]
-		}[width=170mm,height=30mm,border]
-		{}[width=170mm,height=10mm,border]
-		${'{' + format(r'{\small (%d)}[width=8mm,align=center]{}[width=2mm]{\large ', 1..) + [
-			r'(10 + 30) * 5 % 2 - 7 ='
-			r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
-			r'\sqrt{x^2 + y^2 + z^2}'
-			r'3 / 500 + 2 / 3 - {}[width=3em,border] / 10 ='
-			r'{10}[width=3em,align=left,border] +' \
-				r'{10}[width=3em,align=center,border] +' \
-				r'{10}[width=3em,align=right,border]'
-			r'3 * 3 * \pi'
-			r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
-			r'\sqrt 7 + \sqrt{3 / 5}'
-			r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
-			r'24 % 6'
-			r'3 / 10 * 2'
-			//r'({3 / 5}[border] / {{1 / 3}[border] + 2 * 4}[border])'
-		] + '}}[pack,width=85mm,height=20mm,border]'}
-	}[pack,width=170mm,height=250mm]
-	'''.embed())
-}
+		{}[width=30mm,height=30mm,align=left,border]
+	}[width=170mm,height=30mm,border]
+	{}[width=170mm,height=10mm,border]
+	${'{' + format(r'{\small (%d)}[width=8mm,align=center]{}[width=2mm]{\large ', 1..) + [
+		r'(10 + 30) * 5 % 2 - 7 ='
+		r'3 ^ 4 + 2 ^ {3x + 2} + 3 ^ {x ^ 2}'
+		r'\sqrt{x^2 + y^2 + z^2}'
+		r'3 / 500 + 2 / 3 - {}[width=3em,border] / 10 ='
+		r'{10}[width=3em,align=left,border] +' \
+			r'{10}[width=3em,align=center,border] +' \
+			r'{10}[width=3em,align=right,border]'
+		r'3 * 3 * \pi'
+		r'x = {-b \pm \sqrt{b^2 - 4ac}} / 2a'
+		r'\sqrt 7 + \sqrt{3 / 5}'
+		r'\sqrt{x+\sqrt{x+\sqrt{x+1}}}'
+		r'24 % 6'
+		r'3 / 10 * 2'
+		//r'({3 / 5}[border] / {{1 / 3}[border] + 2 * 4}[border])'
+	] + '}}[pack,width=85mm,height=20mm,border]'}
+}[pack,width=170mm,height=250mm,margin-left=20mm,margin-top=20mm]
+'''.embed()
 
-Compose3(canvas:Renderer.Canvas) = {
-	canvas.Render(R'''
-	{
-		{none}[width=20mm,height=20mm,border]
-		{top}[width=20mm,height=20mm,valign=top,border]
-		{medium}[width=20mm,height=20mm,valign=medium,border]
-		{bottom}[width=20mm,height=20mm,valign=bottom,border]
-		\\
-		{none}[width=20mm,height=20mm,border]
-		{left}[width=20mm,height=20mm,align=left,border]
-		{center}[width=20mm,height=20mm,align=center,border]
-		{right}[width=20mm,height=20mm,align=right,border]
-		\\
-		{l-t}[width=20mm,height=20mm,align=left,valign=top,border]
-		{r-t}[width=20mm,height=20mm,align=right,valign=top,border]
-		{l-b}[width=20mm,height=20mm,align=left,valign=bottom,border]
-		{r-b}[width=20mm,height=20mm,align=right,valign=bottom,border]
-	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
-	'''.embed())
-}
+test2 = R'''
+{
+	{none}[width=20mm,height=20mm,border]
+	{top}[width=20mm,height=20mm,valign=top,border]
+	{medium}[width=20mm,height=20mm,valign=medium,border]
+	{bottom}[width=20mm,height=20mm,valign=bottom,border]
+	\\
+	{none}[width=20mm,height=20mm,border]
+	{left}[width=20mm,height=20mm,align=left,border]
+	{center}[width=20mm,height=20mm,align=center,border]
+	{right}[width=20mm,height=20mm,align=right,border]
+	\\
+	{l-t}[width=20mm,height=20mm,align=left,valign=top,border]
+	{r-t}[width=20mm,height=20mm,align=right,valign=top,border]
+	{l-b}[width=20mm,height=20mm,align=left,valign=bottom,border]
+	{r-b}[width=20mm,height=20mm,align=right,valign=bottom,border]
+}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+'''.embed()
 
-Compose4(canvas:Renderer.Canvas) = {
-	canvas.Render(R'''
+test3 = R'''
+{
 	{
-		{
-			{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
-			{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
-		}[width=40mm,height=40mm,border]
-		{
-		}[width=40mm,height=40mm,margin-left=5mm,border]
-		{
-		}[width=40mm,height=40mm,margin-left=5mm,margin-top=5mm,border]
-	}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
-	'''.embed())
-}
+		{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
+		{A}[width=15mm,height=15mm,margin-top=5mm,margin-left=5mm,border]
+	}[width=40mm,height=40mm,border]
+	{
+	}[width=40mm,height=40mm,margin-left=5mm,border]
+	{
+	}[width=40mm,height=40mm,margin-left=5mm,margin-top=5mm,border]
+}[pack,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
+'''.embed()
 
-Compose5(canvas:Renderer.Canvas) = {
-	canvas.Render(R'''
-	{
-		{abcdefghijklmn}[width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
-		{abcdefghijklmn}[pack,width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
-		{}[width=30mm,height=30mm,border]
-	}[pack,width=150mm,height=150mm,border]
-	'''.embed())
-}
+test4 = R'''
+{
+	{abcdefghijklmn}[width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
+	{abcdefghijklmn}[pack,width=30mm,height=30mm,margin-left=5mm,padding=5mm,border]
+	{}[width=30mm,height=30mm,border]
+}[pack,width=150mm,height=150mm,border]
+'''.embed()
 
-Compose(canvas:Renderer.Canvas) = {
-	canvas.Render(R'''
-	{
-		{abcd}[border]
-		{abcdefghijklmn}[border]
-		{abcdefg}[border]
-	}[pack=vert,width=80mm,height=80mm,border]
-	'''.embed())
-}
+test5 = R'''
+{
+	{abcd}[border]
+	{abcdefghijklmn}[border]
+	{abcdefg}[border]
+}[pack=vert,width=80mm,height=80mm,border]
+'''.embed()
 
 if (__name__ == '__main__') {
-	//str = 'x^2+3x^3+4=0'
-	//str = '{1000}[5em,center] + {123}[5em,center] = {}[5em,border=thin]'
-	//str = '123+345-1111'
-	//str = '1 % 3 + {x + 3} % {3x + 2} + 1 % {2 % 3}'
-	//str = '1 % {2 % 3}'
-	//str = '{1 % 2} % {2 % 3}'
-	//str = r'3 * 3 * \pi '
-	//str = r'2(10 + 12)'
-	str = R'''
-	{
-		{
-			hello
-		}[pack,width=170mm,height=50mm,border]
-		{
-			${format('{%s}[width=85mm,height=30mm]\n', GenQuestion(10))}
-		}[pack,width=170mm,height=200mm,border]
-	}[pack=vert,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm,border]
-	'''.embed()
 	canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
-	canvas.Render(str)
-	//Compose(canvas)
+	canvas.Render(test1)
 	canvas.Flush()
-	//randseed(os.clock())
-	//println(x)
 	
 }

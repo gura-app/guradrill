@@ -46,75 +46,138 @@ GenUniqRand4(range1:number, range2:number, range3:number, range4:number) {block}
 	}
 }
 
-GenQ_001() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
-	if (a <= b) { continue }
-	a += 10, b += 10
-	r'${a} - ${b} ='.embed()
+QGenerator_add_2digit_2digit = class {
+	Generate() = {
+		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+			a += 10, b += 10
+			r'${a} + ${b} ='.embed()
+		}
+	}
 }
 
-GenQ_002() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
-	a += 10, b += 10
-	r'${a} + ${b} ='.embed()
+QGenerator_sub_2digit_2digit = class {
+	Generate() = {
+		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+			if (a <= b) { continue }
+			a += 10, b += 10
+			r'${a} - ${b} ='.embed()
+		}
+	}
 }
 
-GenQ_003() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
-	a += 10, b += 10
-	r'${a} * ${b} ='.embed()
+QGenerator_mul_2digit_2digit = class {
+	Generate() = {
+		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+			a += 10, b += 10
+			r'${a} * ${b} ='.embed()
+		}
+	}
 }
 
-GenQ_004() = GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
-	a += 10, b += 10
-	r'${a} % ${b} ='.embed()
+QGenerator_div_2digit_2digit = class {
+	Generate() = {
+		GenUniqRand2(range1 => 90, range2 => 90) {|a, b|
+			a += 10, b += 10
+			r'${a} % ${b} ='.embed()
+		}
+	}
 }
 
-GenQ_005() = GenUniqRand3(range1 => 20, range2 => 20, range3 => 20) {|a, b, c|
-	a += 1, b += 1, c += 1
-	r'${a} + ${b} * ${c} ='.embed()
+QGenerator_mix3_2digit_2digit_2digit = class {
+	Generate() = {
+		GenUniqRand3(range1 => 20, range2 => 20, range3 => 20) {|a, b, c|
+			a += 1, b += 1, c += 1
+			r'${a} + ${b} * ${c} ='.embed()
+		}
+	}
 }
 
-GenQ_006() = GenUniqRand4(range1 => 20, range2 => 20, range3 => 20, range4 => 20) {|a, b, c, d|
-	a += 1, b += 1, c += 1, d += 1
-	r'${a}/${b} * ${c}/${d} ='.embed()
+QGenerator_frac_mul_2digit@2digit_2digit@2digit = class {
+	Generate() = {
+		GenUniqRand4(range1 => 20, range2 => 20, range3 => 20, range4 => 20) {|a, b, c, d|
+			a += 1, b += 1, c += 1, d += 1
+			r'${a}/${b} * ${c}/${d} ='.embed()
+		}
+	}
 }
 
-tmplPage = R'''
-{
+MakePage() = {
+	fmtQuestion = R'''
+	{\small (%d)}[width=8mm,align=center]
+	{}[width=3mm]
+	{\large %s}[width=74mm,height=20mm]
+	'''
+	questions = format(fmtQuestion, 1.., [
+		QGenerator_add_2digit_2digit().Generate().head(3),
+		QGenerator_sub_2digit_2digit().Generate().head(3),
+		QGenerator_mul_2digit_2digit().Generate().head(3),
+		QGenerator_div_2digit_2digit().Generate().head(3),
+		QGenerator_mix3_2digit_2digit_2digit().Generate().head(3),
+		QGenerator_frac_mul_2digit@2digit_2digit@2digit().Generate().head(3)].shuffle())
+	R'''
 	{
-		{}[width=30mm,height=20mm,border]
-		{hello}[width=130mm,height=20mm,border]
-	}[pack,width=170mm,height=20mm,border]
-	{}[height=10mm]
-	{${questions}}[pack,width=170mm,height=230mm]
-}[pack=vert,width=170mm,height=250mm,margin-top=27mm,margin-left=20mm]
-'''.template()
+		{
+			{}[width=30mm,height=20mm,border]
+			{hello}[width=130mm,height=20mm,border]
+		}[pack,width=170mm,height=20mm,border]
+		{}[height=10mm]
+		{${questions}}[pack,width=170mm,height=230mm]
+	}[pack=vert,width=170mm,height=250mm,margin-top=20mm,margin-left=20mm]
+	'''.embed()
+}
 
 App = class(wx.App) {
 	OnInit() = {
+		randseed(os.clock())
 		frame = FrameMain('Simple', wx.DefaultPosition, wx.Size(1000, 750))
 		frame.Show()
 		true
 	}
 }
 
-PanelMain = class(wx.Panel) {
+PanelQuestion = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
-		randseed(os.clock())
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
-		this.canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
-		fmtQuestion = r'{\small (%d)}[width=8mm,align=center]{}[width=3mm]' + \
-					r'{\large %s}[width=74mm,height=20mm]\n'
-		questions = format(fmtQuestion, 1..,
-			[GenQ_001().head(5), GenQ_002().head(5),
-			GenQ_003().head(5), GenQ_004().head(5),
-			GenQ_005().head(5), GenQ_006().head(5)].shuffle())
-		this.canvas.Render(tmplPage.render())
-		//Renderer.Compose(this.canvas)
-		this.bmp = wx.Bitmap(this.canvas.GetImage())
 	}
 	OnPaint(event:wx.PaintEvent) = {
 		dc = wx.PaintDC(this)
 		this.bmp && dc.DrawBitmap(this.bmp, 0, 0, false)
 		dc = nil
+	}
+	UpdatePage(textPage:string) = {
+		canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
+		canvas.Render(textPage)
+		this.bmp = wx.Bitmap(canvas.GetImage())
+	}
+}
+
+PanelMain = class(wx.Panel) {
+	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
+		outerBox = wx.BoxSizer(wx.VERTICAL)
+		this.SetSizer(outerBox)
+		wx.BoxSizer(wx.HORIZONTAL) {|hbox|
+			outerBox.Add(hbox, wx.SizerFlags().Expand())
+			wx.Button(this, wx.ID_ANY, 'New Question') {|ctrl|
+				hbox.Add(ctrl, wx.SizerFlags().Expand())
+				ctrl.Bind(wx.EVT_BUTTON) {|event|
+					this.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
+					this.textPage = MakePage()
+					this.panelQuestion.UpdatePage(this.textPage)
+					this.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+					this.panelQuestion.Refresh()
+				}
+			}
+		}
+		wx.StaticLine(this, wx.ID_ANY) {|ctrl|
+			outerBox.Add(ctrl, wx.SizerFlags().Expand().Border(wx.TOP, 2))
+		}
+		PanelQuestion(this) {|ctrl|
+			outerBox.Add(ctrl, wx.SizerFlags(1).Expand().Border(wx.TOP, 2))
+			this.panelQuestion = ctrl
+		}
+		this.bmp = nil
+		this.textPage = ''
+		this.panelQuestion.UpdatePage('')
 	}
 }
 
