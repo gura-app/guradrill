@@ -157,19 +157,21 @@ QGenerator_quadequ_formula = class(QGenerator) {
 
 MakePage() = {
 	answerFlag = true
-	width = 170 - 8 - 3, height = 20
+	//width = 170 - 8 - 3
+	width = 85 - 8 - 3
+	height = 20
 	fmtQuestion = R'''
 	{\small (%d)}[width=8mm,align=center]
 	{}[width=3mm]
 	{\large %s}[width=${width}mm,height=${height}mm]
 	'''.embed()
 	questions = format(fmtQuestion, 1.., [
-		QGenerator_add_2digit_2digit().Compose(3, answerFlag)
-		QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
-		QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
-		QGenerator_div_2digit_2digit().Compose(3, answerFlag)
-		QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(10, answerFlag)
+		//QGenerator_add_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_div_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(16, answerFlag)
 		//QGenerator_quadequ_factorization().Compose(3, answerFlag)
 		//QGenerator_quadequ_formula().Compose(3, answerFlag)
 		].shuffle())
@@ -224,6 +226,14 @@ PanelMain = class(wx.Panel) {
 					this.panelQuestion.UpdatePage(this.textPage)
 					this.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 					this.panelQuestion.Refresh()
+				}
+			}
+			wx.Button(this, wx.ID_ANY, 'PDF') {|ctrl|
+				hbox.Add(ctrl, wx.SizerFlags().Expand())
+				ctrl.Bind(wx.EVT_BUTTON) {|event|
+					canvas = Renderer.Canvas.CreateForPDF(Renderer.PaperSize@A4, 'a.pdf')
+					canvas.Render(this.textPage)
+					canvas.Flush()
 				}
 			}
 		}
