@@ -164,14 +164,14 @@ MakePage() = {
 	{\large %s}[width=${width}mm,height=${height}mm]
 	'''.embed()
 	questions = format(fmtQuestion, 1.., [
-		//QGenerator_add_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_div_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_add_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_div_2digit_2digit().Compose(3, answerFlag)
+		QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
 		//QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(10, answerFlag)
-		QGenerator_quadequ_factorization().Compose(3, answerFlag)
-		QGenerator_quadequ_formula().Compose(3, answerFlag)
+		//QGenerator_quadequ_factorization().Compose(3, answerFlag)
+		//QGenerator_quadequ_formula().Compose(3, answerFlag)
 		].shuffle())
 	R'''
 	{
