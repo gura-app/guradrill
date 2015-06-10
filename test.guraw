@@ -156,7 +156,7 @@ QGenerator_quadequ_formula = class(QGenerator) {
 }
 
 MakePage() = {
-	answerFlag = true
+	answerFlag = false
 	//width = 170 - 8 - 3
 	width = 85 - 8 - 3
 	height = 20
@@ -166,12 +166,12 @@ MakePage() = {
 	{\large %s}[width=${width}mm,height=${height}mm]
 	'''.embed()
 	questions = format(fmtQuestion, 1.., [
-		//QGenerator_add_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_sub_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_mul_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_div_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
-		QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(16, answerFlag)
+		QGenerator_add_2digit_2digit().Compose(5, answerFlag)
+		QGenerator_sub_2digit_2digit().Compose(5, answerFlag)
+		QGenerator_mul_2digit_2digit().Compose(5, answerFlag)
+		QGenerator_div_2digit_2digit().Compose(5, answerFlag)
+		QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(16, answerFlag)
 		//QGenerator_quadequ_factorization().Compose(3, answerFlag)
 		//QGenerator_quadequ_formula().Compose(3, answerFlag)
 		].shuffle())
