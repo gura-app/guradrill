@@ -207,7 +207,8 @@ PanelQuestion = class(wx.Panel) {
 	}
 	UpdatePage(textPage:string) = {
 		canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
-		canvas.Render(textPage)
+		item = Renderer.Parse(canvas.paperSize, textPage)
+		canvas.DrawItem(0, 0, item)
 		this.bmp = wx.Bitmap(canvas.GetImage())
 	}
 }
@@ -232,7 +233,8 @@ PanelMain = class(wx.Panel) {
 				hbox.Add(ctrl, wx.SizerFlags().Expand())
 				ctrl.Bind(wx.EVT_BUTTON) {|event|
 					canvas = Renderer.Canvas.CreateForPDF(Renderer.PaperSize@A4, 'a.pdf')
-					canvas.Render(this.textPage)
+					item = Renderer.Parse(canvas.paperSize, this.textPage)
+					canvas.DrawItem(0, 0, item)
 					canvas.Flush()
 				}
 			}

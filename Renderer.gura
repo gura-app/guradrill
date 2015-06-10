@@ -167,11 +167,6 @@ Canvas = class {
 	}
 	CalcExtentItem(item:Item) = this.DrawItem(0, 0, item, false)
 	CalcExtentItems(items[]:Item) = this.DrawItems(0, 0, items, false)
-	Render(content:string) = {
-		item = this.Parse(content)
-		ext = this.DrawItem(this.x, this.y, item)
-		this.x += ext.x_advance
-	}
 	FoldHorz(items[]:Item, width:number) {block} = {
 		itemsFold = []
 		widthFold = 0
@@ -192,225 +187,6 @@ Canvas = class {
 			if (descent < ext.descent) {descent = ext.descent}
 		}
 		block(itemsFold, widthFold, descentPrev + ascent)
-	}
-	Parse(content:string) = {
-		textCharDict = %{
-			'pi'	=> '\u03c0'
-			'infty'	=> '\u221e'
-		}
-		opCharDict = %{
-			'neq'	=> '\u2260'
-			'leq'	=> '\u2266'
-			'geq'	=> '\u2267'
-			'pm'	=> '\u00b1'
-			'mp'	=> '\u2213'
-			'simeq'	=> '\u2252'
-			'equiv'	=> '\u2261'
-		}
-		mathModeFlag = true
-		itemStack = []
-		ItemBox(nil) {|item|
-			item.width = Length(this.paperSize.mmWidth, 'mm')
-			item.height = Length(this.paperSize.mmHeight, 'mm')
-			itemStack.add(item)
-		}
-		text = ''
-		stat = `Init
-		content.each {|ch|
-			utils.pushback {|pb|
-				if (stat == `Init) {
-					itemParent = itemStack.last()
-					if (ch == '{') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							text = ''
-						}
-						item = ItemBox(itemParent)
-						Item.AddChildTo(itemStack, item)
-						itemStack.add(item)
-					} elsif (ch == '}') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							itemParent = itemStack.last()
-							text = ''
-						}
-						if (itemParent.type != `Box) {
-							raise(error.SyntaxError, 'unbalanced bracket')
-						}
-						stat = `BoxAttrPre
-					} elsif (ch in [' ', '\t', '\n']) {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							text = ''
-						}
-					} elsif (ch == '\\') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							text = ''
-						}
-						stat = `Command
-					} elsif (!mathModeFlag) {
-						text += ch
-					} elsif (ch == '(') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							text = ''
-						}
-						item = ItemBracket(itemParent)
-						Item.AddChildTo(itemStack, item)
-						itemStack.add(item)
-					} elsif (ch == ')') {
-						itemParent = itemStack.last()
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							itemParent = itemStack.last()
-							text = ''
-						}
-						if (itemParent.type != `Bracket) {
-							raise(error.SyntacError, 'unbalanced bracket')
-						}
-						itemStack.erase(-1)
-						text = ''
-					} elsif (ch == '/') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							itemParent = itemStack.last()
-							text = ''
-						}
-						if (itemLast = itemParent.GetLastChild()) {
-							itemParent.EraseLastChild()
-							item = ItemRational(itemParent)
-							Item.AddChildTo(itemStack, item)
-							item.AddChild(itemLast)
-							itemStack.add(item)
-						}
-					} elsif (ch == '^') {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							itemParent = itemStack.last()
-							text = ''
-						}
-						if (itemLast = itemParent.GetLastChild()) {
-							itemParent.EraseLastChild()
-							item = ItemPower(itemParent)
-							Item.AddChildTo(itemStack, item)
-							item.AddChild(itemLast)
-							itemStack.add(item)
-						}
-					} elsif (ch in ['+', '-', '*', '%', '=', '<', '>']) {
-						if (!text.isempty()) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, text))
-							text = ''
-						}
-						Item.AddChildTo(itemStack, ItemOperator(itemParent, ch))
-					} else {
-						text += ch
-					}
-				} elsif (stat == `BoxAttrPre) {
-					if (ch == '[') {
-						stat = `BoxAttr
-					} else {
-						itemStack.erase(-1)
-						pb.Pushback()
-						stat = `Init
-					}
-				} elsif (stat == `BoxAttr) {
-				if (ch == ']') {
-					itemParent = itemStack.last()
-					text.split(',') {|field|
-						field = field.strip()
-						if (m = field.match(r'^pack\s*=\s*([a-z]+)')) {
-							if (m[1] in ['horz', 'vert']) {
-								itemParent.pack = m[1].tosymbol()
-							}
-						} elsif (field == 'pack') {
-							itemParent.pack = `horz
-						} elsif (m = field.match(r'^width\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.width = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^height\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.height = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^margin\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.marginTop = itemParent.marginBottom = \
-								itemParent.marginLeft = itemParent.marginRight = \
-								Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^margin-top\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.marginTop = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^margin-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.marginBottom = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^margin-left\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.marginLeft = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^margin-right\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.marginRight = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^padding\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.paddingTop = itemParent.paddingBottom = \
-								itemParent.paddingLeft = itemParent.paddingRight = \
-								Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^padding-top\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.paddingTop = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^padding-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.paddingBottom = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^padding-left\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.paddingLeft = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^padding-right\s*=\s*([\d\.]+)([a-z]+)')) {
-							itemParent.paddingRight = Length(m[1].tonumber(), m[2])
-						} elsif (m = field.match(r'^border\s*=\s*([a-z]+)')) {
-							if (m[1] in ['thin', 'medium', 'thick']) {
-								itemParent.border = m[1].tosymbol()
-							}
-						} elsif (field == 'border') {
-							itemParent.border = `medium
-						} elsif (m = field.match(r'^align\s*=\s*([a-z]+)')) {
-							if (m[1] in ['left', 'center', 'right']) {
-								itemParent.align = m[1].tosymbol()
-							}
-						} elsif (m = field.match(r'^valign\s*=\s*([a-z]+)')) {
-							if (m[1] in ['top', 'middle', 'bottom']) {
-								itemParent.valign = m[1].tosymbol()
-							}
-						} else {
-							// invalid attribute
-						}
-					}
-					itemStack.erase(-1)
-					text = ''
-					stat = `Init
-					} else {
-						text += ch
-					}
-				} elsif (stat == `Command) {
-					if (ch.isalpha()) {
-						text += ch
-					} elsif (ch == '\\') {
-						Item.AddChildTo(itemStack, ItemNewline(itemParent))
-						text = ''
-						stat = `Init
-					} else {
-						if (text == 'sqrt') {
-							item = ItemSqrt(itemParent)
-							Item.AddChildTo(itemStack, item)
-							itemStack.add(item)
-						} elsif (text == 'newline') {
-							Item.AddChildTo(itemStack, ItemNewline(itemParent))
-						} elsif (text in ['tiny', 'small', 'normalsize', 'large',
-							'it', 'bf']) {
-							Item.AddChildTo(itemStack, ItemCommand(itemParent, text))
-						} elsif (chConv = textCharDict.get(text)) {
-							Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
-						} elsif (chConv = opCharDict.get(text)) {
-							Item.AddChildTo(itemStack, ItemOperator(itemParent, chConv))
-						}
-						text = ''
-						pb.Pushback()
-						stat = `Init
-					}
-				}
-			}
-		}
-		if (!text.isempty()) {
-			itemParent = itemStack.last()
-			Item.AddChildTo(itemStack, ItemText(itemParent, text))
-		}
-		itemStack.first()
 	}
 }
 
@@ -854,6 +630,225 @@ ItemNewline = class(Item) {
 //------------------------------------------------------------------------------
 // Functions
 //------------------------------------------------------------------------------
+Parse(paperSize:PaperSize, content:string) = {
+	textCharDict = %{
+		'pi'	=> '\u03c0'
+		'infty'	=> '\u221e'
+	}
+	opCharDict = %{
+		'neq'	=> '\u2260'
+		'leq'	=> '\u2266'
+		'geq'	=> '\u2267'
+		'pm'	=> '\u00b1'
+		'mp'	=> '\u2213'
+		'simeq'	=> '\u2252'
+		'equiv'	=> '\u2261'
+	}
+	mathModeFlag = true
+	itemStack = []
+	ItemBox(nil) {|item|
+		item.width = Length(paperSize.mmWidth, 'mm')
+		item.height = Length(paperSize.mmHeight, 'mm')
+		itemStack.add(item)
+	}
+	text = ''
+	stat = `Init
+	content.each {|ch|
+		utils.pushback {|pb|
+			if (stat == `Init) {
+				itemParent = itemStack.last()
+				if (ch == '{') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					item = ItemBox(itemParent)
+					Item.AddChildTo(itemStack, item)
+					itemStack.add(item)
+				} elsif (ch == '}') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemParent.type != `Box) {
+						raise(error.SyntaxError, 'unbalanced bracket')
+					}
+					stat = `BoxAttrPre
+				} elsif (ch in [' ', '\t', '\n']) {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+				} elsif (ch == '\\') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					stat = `Command
+				} elsif (!mathModeFlag) {
+					text += ch
+				} elsif (ch == '(') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					item = ItemBracket(itemParent)
+					Item.AddChildTo(itemStack, item)
+					itemStack.add(item)
+				} elsif (ch == ')') {
+					itemParent = itemStack.last()
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemParent.type != `Bracket) {
+						raise(error.SyntacError, 'unbalanced bracket')
+					}
+					itemStack.erase(-1)
+					text = ''
+				} elsif (ch == '/') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemLast = itemParent.GetLastChild()) {
+						itemParent.EraseLastChild()
+						item = ItemRational(itemParent)
+						Item.AddChildTo(itemStack, item)
+						item.AddChild(itemLast)
+						itemStack.add(item)
+					}
+				} elsif (ch == '^') {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						itemParent = itemStack.last()
+						text = ''
+					}
+					if (itemLast = itemParent.GetLastChild()) {
+						itemParent.EraseLastChild()
+						item = ItemPower(itemParent)
+						Item.AddChildTo(itemStack, item)
+						item.AddChild(itemLast)
+						itemStack.add(item)
+					}
+				} elsif (ch in ['+', '-', '*', '%', '=', '<', '>']) {
+					if (!text.isempty()) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, text))
+						text = ''
+					}
+					Item.AddChildTo(itemStack, ItemOperator(itemParent, ch))
+				} else {
+					text += ch
+				}
+			} elsif (stat == `BoxAttrPre) {
+				if (ch == '[') {
+					stat = `BoxAttr
+				} else {
+					itemStack.erase(-1)
+					pb.Pushback()
+					stat = `Init
+				}
+			} elsif (stat == `BoxAttr) {
+				if (ch == ']') {
+					itemParent = itemStack.last()
+					text.split(',') {|field|
+						field = field.strip()
+						if (m = field.match(r'^pack\s*=\s*([a-z]+)')) {
+							if (m[1] in ['horz', 'vert']) {
+								itemParent.pack = m[1].tosymbol()
+							}
+						} elsif (field == 'pack') {
+							itemParent.pack = `horz
+						} elsif (m = field.match(r'^width\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.width = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^height\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.height = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginTop = itemParent.marginBottom = \
+								itemParent.marginLeft = itemParent.marginRight = \
+								Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-top\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginTop = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginBottom = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-left\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginLeft = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^margin-right\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.marginRight = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingTop = itemParent.paddingBottom = \
+								itemParent.paddingLeft = itemParent.paddingRight = \
+								Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-top\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingTop = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-bottom\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingBottom = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-left\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingLeft = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^padding-right\s*=\s*([\d\.]+)([a-z]+)')) {
+							itemParent.paddingRight = Length(m[1].tonumber(), m[2])
+						} elsif (m = field.match(r'^border\s*=\s*([a-z]+)')) {
+							if (m[1] in ['thin', 'medium', 'thick']) {
+								itemParent.border = m[1].tosymbol()
+							}
+						} elsif (field == 'border') {
+							itemParent.border = `medium
+						} elsif (m = field.match(r'^align\s*=\s*([a-z]+)')) {
+							if (m[1] in ['left', 'center', 'right']) {
+								itemParent.align = m[1].tosymbol()
+							}
+						} elsif (m = field.match(r'^valign\s*=\s*([a-z]+)')) {
+							if (m[1] in ['top', 'middle', 'bottom']) {
+								itemParent.valign = m[1].tosymbol()
+							}
+						} else {
+							// invalid attribute
+						}
+					}
+					itemStack.erase(-1)
+					text = ''
+					stat = `Init
+				} else {
+					text += ch
+				}
+			} elsif (stat == `Command) {
+				if (ch.isalpha()) {
+					text += ch
+				} elsif (ch == '\\') {
+					Item.AddChildTo(itemStack, ItemNewline(itemParent))
+					text = ''
+					stat = `Init
+				} else {
+					if (text == 'sqrt') {
+						item = ItemSqrt(itemParent)
+						Item.AddChildTo(itemStack, item)
+						itemStack.add(item)
+					} elsif (text == 'newline') {
+						Item.AddChildTo(itemStack, ItemNewline(itemParent))
+					} elsif (text in ['tiny', 'small', 'normalsize', 'large',
+						'it', 'bf']) {
+						Item.AddChildTo(itemStack, ItemCommand(itemParent, text))
+					} elsif (chConv = textCharDict.get(text)) {
+						Item.AddChildTo(itemStack, ItemText(itemParent, chConv))
+					} elsif (chConv = opCharDict.get(text)) {
+						Item.AddChildTo(itemStack, ItemOperator(itemParent, chConv))
+					}
+					text = ''
+					pb.Pushback()
+					stat = `Init
+				}
+			}
+		}
+	}
+	if (!text.isempty()) {
+		itemParent = itemStack.last()
+		Item.AddChildTo(itemStack, ItemText(itemParent, text))
+	}
+	itemStack.first()
+}
 
 DrawTextWithBBox(cr:cairo.context, x:number, y:number, str:string) = {
 	xOff = 0
