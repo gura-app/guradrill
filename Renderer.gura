@@ -959,9 +959,19 @@ test5 = R'''
 }[pack=vert,width=80mm,height=80mm,border]
 '''.embed()
 
+test6 = R'''
+{
+	${repeat(100):iter {'{aa bb cc}'}}
+}[pack=vert,width=80mm,height=80mm,border]
+'''.embed()
+
 if (__name__ == '__main__') {
 	canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
-	canvas.Render(test1)
+	timeStart = os.clock()
+	item = Parse(canvas.paperSize, test6)
+	printf('Parse: %f\n', os.clock() - timeStart)
+	timeStart = os.clock()
+	canvas.DrawItem(0, 0, item)
+	printf('Draw:  %f\n', os.clock() - timeStart)
 	canvas.Flush()
-	
 }
