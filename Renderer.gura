@@ -634,6 +634,11 @@ Parse(paperSize:PaperSize, content:string) = {
 	textCharDict = %{
 		'pi'	=> '\u03c0'
 		'infty'	=> '\u221e'
+		'cdot'	=> '\u22c5'
+		'ldots'	=> '\u2026'
+		'cdots'	=> '\u22ef'
+		'vdots'	=> '\u22ee'
+		'ddots'	=> '\u22f1'
 	}
 	opCharDict = %{
 		'neq'	=> '\u2260'
@@ -967,7 +972,7 @@ test6 = R'''
 }[pack=vert,width=80mm,height=80mm,border]
 '''.embed()
 
-if (__name__ == '__main__') {
+tester1() = {
 	//canvas = Canvas.CreateForPDF(PaperSize@A4, 'a.pdf')
 	canvas = Canvas.CreateForPreview(PaperSize@A4, 1)
 	timeStart = os.clock()
@@ -980,4 +985,13 @@ if (__name__ == '__main__') {
 	canvas.DrawItem(0, 0, item)
 	printf('Draw:  %f\n', os.clock() - timeStart)
 	canvas.Flush()
+}
+
+tester2() = {
+	item = Parse(PaperSize@A4, r'3 \cdots 5')
+	item.Print()
+}
+
+if (__name__ == '__main__') {
+	tester2()
 }

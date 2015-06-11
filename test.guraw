@@ -45,11 +45,33 @@ QGenerator = class {
 	}
 }
 
+QGenerator_add_1digit_1digit = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(9, 9) {|a, b|
+			a += 1, b += 1
+			ans = a + b
+			Question(r'${a} + ${b} ='.embed(), '${ans}'.embed())
+		}
+	}
+}
+
 QGenerator_add_2digit_2digit = class(QGenerator) {
 	Generate() = {
 		GenUniqRand(90, 90) {|a, b|
 			a += 10, b += 10
-			Question(r'${a} + ${b} ='.embed(), '${a + b}'.embed())
+			ans = a + b
+			Question(r'${a} + ${b} ='.embed(), '${ans}'.embed())
+		}
+	}
+}
+
+QGenerator_sub_1digit_1digit = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(9, 9) {|a, b|
+			(a <= b) && continue
+			a += 1, b += 1
+			ans = a - b
+			Question(r'${a} - ${b} ='.embed(), '${ans}'.embed())
 		}
 	}
 }
@@ -57,9 +79,20 @@ QGenerator_add_2digit_2digit = class(QGenerator) {
 QGenerator_sub_2digit_2digit = class(QGenerator) {
 	Generate() = {
 		GenUniqRand(90, 90) {|a, b|
-			if (a <= b) { continue }
+			(a <= b) && continue
 			a += 10, b += 10
-			Question(r'${a} - ${b} ='.embed(), '${a - b}'.embed())
+			ans = a - b
+			Question(r'${a} - ${b} ='.embed(), '${ans}'.embed())
+		}
+	}
+}
+
+QGenerator_mul_1digit_1digit = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(9, 9) {|a, b|
+			a += 1, b += 1
+			ans = a * b
+			Question(r'${a} * ${b} ='.embed(), '${ans}'.embed())
 		}
 	}
 }
@@ -68,7 +101,51 @@ QGenerator_mul_2digit_2digit = class(QGenerator) {
 	Generate() = {
 		GenUniqRand(90, 90) {|a, b|
 			a += 10, b += 10
-			Question(r'${a} * ${b} ='.embed(), '${a * b}'.embed())
+			ans = a * b
+			Question(r'${a} * ${b} ='.embed(), '${ans}'.embed())
+		}
+	}
+}
+
+QGenerator_div_2digit_1digit_1digit@ans_norest = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(9, 9) {|b, ans|
+			b += 1, ans += 1
+			a = b * ans
+			Question(r'${a} % ${b} ='.embed(), '${ans}'.embed())
+		}
+	}
+}
+
+QGenerator_div_2digit_1digit_1digit@ans = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(81, 9) {|a, b|
+			a += 1, b += 1
+			(a <= b) && continue
+			ans = int(a / b)
+			(ans >= 10) && continue
+			strAns = '${ans}'.embed()
+			rest = a % b
+			if (rest != 0) {
+				strAns += r'{}[width=.5em]...{}[width=.5em]${rest}'.embed()
+			}
+			Question(r'${a} % ${b} ='.embed(), strAns)
+		}
+	}
+}
+
+QGenerator_div_2digit_1digit = class(QGenerator) {
+	Generate() = {
+		GenUniqRand(99, 9) {|a, b|
+			a += 1, b += 1
+			(a <= b) && continue
+			ans = int(a / b)
+			strAns = '${ans}'.embed()
+			rest = a % b
+			if (rest != 0) {
+				strAns += r'{}[width=.5em]...{}[width=.5em]${rest}'.embed()
+			}
+			Question(r'${a} % ${b} ='.embed(), strAns)
 		}
 	}
 }
@@ -77,7 +154,14 @@ QGenerator_div_2digit_2digit = class(QGenerator) {
 	Generate() = {
 		GenUniqRand(90, 90) {|a, b|
 			a += 10, b += 10
-			Question(r'${a} % ${b} ='.embed(), '${a / b}'.embed())
+			(a <= b) && continue
+			ans = int(a / b)
+			strAns = '${ans}'.embed()
+			rest = a % b
+			if (rest != 0) {
+				strAns += r'{}[width=.5em]...{}[width=.5em]${rest}'.embed()
+			}
+			Question(r'${a} % ${b} ='.embed(), strAns)
 		}
 	}
 }
@@ -95,11 +179,11 @@ QGenerator_frac_add_2digit@2digit_2digit@2digit = class(QGenerator) {
 	Generate() = {
 		GenUniqRand(9, 9, 9, 9) {|a, b, c, d|
 			a += 1, b += 1, c += 1, d += 1
-			if (a > b || c > d) {continue}
+			(a > b || c > d) && continue
 			x1 = rational(a, b).reduce()
 			x2 = rational(c, d).reduce()
-			if (x1.denom == 1 && x2.denom == 1) {continue}
-			if ((x1.denom == 1 || x2.denom == 1) && rand() > .2) {continue}
+			(x1.denom == 1 && x2.denom == 1) && continue
+			((x1.denom == 1 || x2.denom == 1) && rand() > .2) && continue
 			ans = x1 + x2
 			Question(r'${x1.display()} + ${x2.display()} ='.embed(),
 					 '${ans.display()}'.embed())
@@ -156,7 +240,7 @@ QGenerator_quadequ_formula = class(QGenerator) {
 }
 
 MakePage() = {
-	answerFlag = false
+	answerFlag = true
 	//width = 170 - 8 - 3
 	width = 85 - 8 - 3
 	height = 20
@@ -166,12 +250,18 @@ MakePage() = {
 	{\large %s}[width=${width}mm,height=${height}mm]
 	'''.embed()
 	questions = format(fmtQuestion, 1.., [
-		QGenerator_add_2digit_2digit().Compose(5, answerFlag)
-		QGenerator_sub_2digit_2digit().Compose(5, answerFlag)
-		QGenerator_mul_2digit_2digit().Compose(5, answerFlag)
+		//QGenerator_div_2digit_1digit_1digit@ans_norest().Compose(5, answerFlag)
+		//QGenerator_div_2digit_1digit_1digit@ans().Compose(5, answerFlag)
+		QGenerator_div_2digit_1digit().Compose(5, answerFlag)
 		QGenerator_div_2digit_2digit().Compose(5, answerFlag)
-		QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
-		//QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(16, answerFlag)
+
+		//QGenerator_add_1digit_1digit().Compose(5, answerFlag)
+		//QGenerator_add_2digit_2digit().Compose(5, answerFlag)
+		//QGenerator_sub_2digit_2digit().Compose(5, answerFlag)
+		//QGenerator_mul_2digit_2digit().Compose(5, answerFlag)
+		//QGenerator_div_2digit_2digit().Compose(5, answerFlag)
+		//QGenerator_mix3_2digit_2digit_2digit().Compose(3, answerFlag)
+		//QGenerator_frac_add_2digit@2digit_2digit@2digit().Compose(3, answerFlag)
 		//QGenerator_quadequ_factorization().Compose(3, answerFlag)
 		//QGenerator_quadequ_formula().Compose(3, answerFlag)
 		].shuffle())
