@@ -654,7 +654,9 @@ Parse(paperSize:PaperSize, content:string) = {
 	text = ''
 	stat = `Init
 	content.each {|ch|
-		utils.pushback {|pb|
+		pushbackFlag = true
+		while (pushbackFlag) {
+			pushbackFlag = false
 			if (stat == `Init) {
 				itemParent = itemStack.last()
 				if (ch == '{') {
@@ -748,7 +750,7 @@ Parse(paperSize:PaperSize, content:string) = {
 					stat = `BoxAttr
 				} else {
 					itemStack.erase(-1)
-					pb.Pushback()
+					pushbackFlag = true
 					stat = `Init
 				}
 			} elsif (stat == `BoxAttr) {
@@ -837,7 +839,7 @@ Parse(paperSize:PaperSize, content:string) = {
 						Item.AddChildTo(itemStack, ItemOperator(itemParent, chConv))
 					}
 					text = ''
-					pb.Pushback()
+					pushbackFlag = true
 					stat = `Init
 				}
 			}
@@ -961,7 +963,7 @@ test5 = R'''
 
 test6 = R'''
 {
-	${repeat(100):iter {'{aa bb cc}'}}
+	${repeat(100):iter {'{aa bb cc}\n'}}
 }[pack=vert,width=80mm,height=80mm,border]
 '''.embed()
 
@@ -970,6 +972,9 @@ if (__name__ == '__main__') {
 	timeStart = os.clock()
 	item = Parse(canvas.paperSize, test6)
 	printf('Parse: %f\n', os.clock() - timeStart)
+
+	item.Print()
+
 	timeStart = os.clock()
 	canvas.DrawItem(0, 0, item)
 	printf('Draw:  %f\n', os.clock() - timeStart)
