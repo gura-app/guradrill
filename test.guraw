@@ -198,6 +198,7 @@ App = class(wx.App) {
 
 PanelQuestion = class(wx.Panel) {
 	__init__(parent:wx.Window) = {|parent, style => wx.BORDER_SUNKEN|
+		this.bmp = nil
 		this.Bind(wx.EVT_PAINT) {|event| this.OnPaint(event) }
 	}
 	OnPaint(event:wx.PaintEvent) = {
@@ -205,10 +206,9 @@ PanelQuestion = class(wx.Panel) {
 		this.bmp && dc.DrawBitmap(this.bmp, 0, 0, false)
 		dc = nil
 	}
-	UpdatePage(textPage:string) = {
-		canvas = Renderer.Canvas.CreateForPreview(Renderer.PaperSize@A4, .6)
-		item = Renderer.Parse(canvas.paperSize, textPage)
-		canvas.DrawItem(0, 0, item)
+	UpdatePage(paperSize:Renderer.PaperSize, item:Renderer.Item:nil) = {
+		canvas = Renderer.Canvas.CreateForPreview(paperSize, .6)
+		item && canvas.DrawItem(0, 0, item)
 		this.bmp = wx.Bitmap(canvas.GetImage())
 	}
 }
@@ -223,8 +223,9 @@ PanelMain = class(wx.Panel) {
 				hbox.Add(ctrl, wx.SizerFlags().Expand())
 				ctrl.Bind(wx.EVT_BUTTON) {|event|
 					this.SetCursor(wx.StockCursor(wx.CURSOR_WAIT))
-					this.textPage = MakePage()
-					this.panelQuestion.UpdatePage(this.textPage)
+					textPage = MakePage()
+					this.item = Renderer.Parse(this.paperSize, textPage)
+					this.panelQuestion.UpdatePage(this.paperSize, this.item)
 					this.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 					this.panelQuestion.Refresh()
 				}
@@ -232,9 +233,8 @@ PanelMain = class(wx.Panel) {
 			wx.Button(this, wx.ID_ANY, 'PDF') {|ctrl|
 				hbox.Add(ctrl, wx.SizerFlags().Expand())
 				ctrl.Bind(wx.EVT_BUTTON) {|event|
-					canvas = Renderer.Canvas.CreateForPDF(Renderer.PaperSize@A4, 'a.pdf')
-					item = Renderer.Parse(canvas.paperSize, this.textPage)
-					canvas.DrawItem(0, 0, item)
+					canvas = Renderer.Canvas.CreateForPDF(this.paperSize, 'a.pdf')
+					canvas.DrawItem(0, 0, this.item)
 					canvas.Flush()
 				}
 			}
@@ -247,8 +247,9 @@ PanelMain = class(wx.Panel) {
 			this.panelQuestion = ctrl
 		}
 		this.bmp = nil
-		this.textPage = ''
-		this.panelQuestion.UpdatePage('')
+		this.item = nil
+		this.paperSize = Renderer.PaperSize@A4
+		this.panelQuestion.UpdatePage(this.paperSize, nil)
 	}
 }
 
